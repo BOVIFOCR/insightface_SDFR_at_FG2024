@@ -104,5 +104,5 @@ ENV/
 
 # Bernardo
 recognition/arcface_torch/trained_models/*
-recognition/arcface_torch/results_ijbc/*
+recognition/arcface_torch/results_ijbc*
 recognition/model/*
