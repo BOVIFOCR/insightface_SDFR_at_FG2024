@@ -1,4 +1,5 @@
 # coding: utf-8
+# Source: https://github.com/deepinsight/insightface/blob/master/recognition/arcface_torch/eval_ijbc.py
 
 import os
 import pickle
@@ -25,26 +26,37 @@ from pathlib import Path
 import sys
 import warnings
 
+# import tensorflow as tf
+import yaml
+# from model import get_embd
+
+
 sys.path.insert(0, "../")
 warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser(description='do ijb test')
-# general
-parser.add_argument('--model-prefix', default='/home/bjgbiesseck/GitHub/insightface/recognition/arcface_torch/trained_models/ms1mv3_arcface_r50_fp16/backbone.pth', help='path to load model.')
+
+# RESNET 50
+# parser.add_argument('--model-prefix', default='/home/bjgbiesseck/GitHub/insightface/recognition/arcface_torch/trained_models/ms1mv3_arcface_r50_fp16/backbone.pth', help='path to load model.')
+# parser.add_argument('--network', default='r50', type=str, help='')
+
+# RESNET 100
+parser.add_argument('--model-prefix', default='/home/bjgbiesseck/GitHub/insightface/recognition/arcface_torch/trained_models/ms1mv3_arcface_r100_fp16/backbone.pth', help='path to load model.')
+parser.add_argument('--network', default='r100', type=str, help='')
+
 parser.add_argument('--image-path', default='/datasets1/bjgbiesseck/IJB-C/rec_data_ijbc/', type=str, help='')
-parser.add_argument('--result-dir', default='.', type=str, help='')
+parser.add_argument('--result-dir', default='results_ijbc', type=str, help='')
 parser.add_argument('--batch-size', default=128, type=int, help='')
-# parser.add_argument('--network', default='iresnet50', type=str, help='')
-parser.add_argument('--network', default='r50', type=str, help='')
 parser.add_argument('--job', default='insightface', type=str, help='job name')
 parser.add_argument('--target', default='IJBC', type=str, help='target, set to IJBC or IJBB')
 args = parser.parse_args()
 
 target = args.target
+# config_path = args.config_path
 model_path = args.model_prefix
 image_path = args.image_path
 result_dir = args.result_dir
-gpu_id = 0
+gpu_id = None
 use_norm_score = True  # if Ture, TestMode(N1)
 use_detector_score = True  # if Ture, TestMode(D1)
 use_flip_test = True  # if Ture, TestMode(F1)
@@ -56,12 +68,15 @@ class Embedding(object):
     def __init__(self, prefix, data_shape, batch_size=1):
         image_size = (112, 112)
         self.image_size = image_size
-        weight = torch.load(prefix)
-        resnet = get_model(args.network, dropout=0, fp16=False).cuda()
-        resnet.load_state_dict(weight)
-        model = torch.nn.DataParallel(resnet)
-        self.model = model
-        self.model.eval()
+
+        # original
+        # weight = torch.load(prefix)
+        # resnet = get_model(args.network, dropout=0, fp16=False).cuda()
+        # resnet.load_state_dict(weight)
+        # model = torch.nn.DataParallel(resnet)
+        # self.model = model
+        # self.model.eval()
+
         src = np.array([
             [30.2946, 51.6963],
             [65.5318, 51.5014],
@@ -74,7 +89,6 @@ class Embedding(object):
         self.data_shape = data_shape
 
     def get(self, rimg, landmark):
-
         assert landmark.shape[0] == 68 or landmark.shape[0] == 5
         assert landmark.shape[1] == 2
         if landmark.shape[0] == 68:
@@ -89,24 +103,28 @@ class Embedding(object):
         tform = trans.SimilarityTransform()
         tform.estimate(landmark5, self.src)
         M = tform.params[0:2, :]
+
+        # original (commented by Bernardo because images are already aligned)
         # img = cv2.warpAffine(rimg,
         #                      M, (self.image_size[1], self.image_size[0]),
         #                      borderValue=0.0)
-        img = rimg
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = rimg   # Bernardo
+
+        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img_flip = np.fliplr(img)
         img = np.transpose(img, (2, 0, 1))  # 3*112*112, RGB
         img_flip = np.transpose(img_flip, (2, 0, 1))
         input_blob = np.zeros((2, 3, self.image_size[1], self.image_size[0]), dtype=np.uint8)
+        # input_blob = np.zeros((2, self.image_size[1], self.image_size[0], 3), dtype=np.uint8)
         input_blob[0] = img
         input_blob[1] = img_flip
         return input_blob
 
     @torch.no_grad()
-    def forward_db(self, batch_data):
+    def forward_db(self, batch_data, model):
         imgs = torch.Tensor(batch_data).cuda()
         imgs.div_(255).sub_(0.5).div_(0.5)
-        feat = self.model(imgs)
+        feat = model(imgs)
         feat = feat.reshape([self.batch_size, 2 * feat.shape[1]])
         return feat.cpu().numpy()
 
@@ -156,6 +174,7 @@ def read_image_feature(path):
 def get_image_feature(img_path, files_list, model_path, epoch, gpu_id):
     batch_size = args.batch_size
     data_shape = (3, 112, 112)
+    # data_shape = (112, 112, 3)
 
     files = files_list
     print('files:', len(files))
@@ -164,48 +183,91 @@ def get_image_feature(img_path, files_list, model_path, epoch, gpu_id):
     batch = 0
     img_feats = np.empty((len(files), 1024), dtype=np.float32)
 
-    batch_data = np.empty((2 * batch_size, 3, 112, 112))
-    embedding = Embedding(model_path, data_shape, batch_size)
-    for img_index, each_line in enumerate(files[:len(files) - rare_size]):
-        name_lmk_score = each_line.strip().split(' ')
-        img_name = os.path.join(img_path, name_lmk_score[0])
-        img = cv2.imread(img_name)
-        lmk = np.array([float(x) for x in name_lmk_score[1:-1]],
-                       dtype=np.float32)
-        lmk = lmk.reshape((5, 2))
-        input_blob = embedding.get(img, lmk)
+    # Bernardo
+    '''
+    config = yaml.load(open(args.config_path))
+    images = tf.placeholder(dtype=tf.float32, shape=[None, config['image_size'], config['image_size'], 3], name='input_image')
+    train_phase_dropout = tf.placeholder(dtype=tf.bool, shape=None, name='train_phase')
+    train_phase_bn = tf.placeholder(dtype=tf.bool, shape=None, name='train_phase_last')
+    embds, _ = get_embd(images, train_phase_dropout, train_phase_bn, config)
+    print('done!')
+    tf_config = tf.ConfigProto(allow_soft_placement=True)
+    tf_config.gpu_options.allow_growth = True
+    with tf.Session(config=tf_config) as sess:
+        tf.global_variables_initializer().run()
+        print('loading model:', model_path)
+        saver = tf.train.Saver()
+        saver.restore(sess, model_path)
+        print('done!')
+        # Bernardo
+    '''
+    
+    image_size = (112, 112)
+    # self.image_size = image_size
+    weight = torch.load(model_path)
+    resnet = get_model(args.network, dropout=0, fp16=False).cuda()
+    resnet.load_state_dict(weight)
+    model = torch.nn.DataParallel(resnet)
+    # self.model = model
+    model.eval()
 
-        batch_data[2 * (img_index - batch * batch_size)][:] = input_blob[0]
-        batch_data[2 * (img_index - batch * batch_size) + 1][:] = input_blob[1]
-        if (img_index + 1) % batch_size == 0:
-            print('batch', batch)
-            img_feats[batch * batch_size:batch * batch_size +
-                                         batch_size][:] = embedding.forward_db(batch_data)
-            batch += 1
-        faceness_scores.append(name_lmk_score[-1])
+    with torch.no_grad():
+        batch_data = np.empty((2 * batch_size, 3, 112, 112))
+        # batch_data = np.empty((2 * batch_size, 112, 112, 3))
+        embedding = Embedding(model_path, data_shape, batch_size)
+        for img_index, each_line in enumerate(files[:len(files) - rare_size]):
+            name_lmk_score = each_line.strip().split(' ')
+            img_name = os.path.join(img_path, name_lmk_score[0])
+            img = cv2.imread(img_name)
+            lmk = np.array([float(x) for x in name_lmk_score[1:-1]],
+                        dtype=np.float32)
+            lmk = lmk.reshape((5, 2))
+            input_blob = embedding.get(img, lmk)
 
-    batch_data = np.empty((2 * rare_size, 3, 112, 112))
-    embedding = Embedding(model_path, data_shape, rare_size)
-    for img_index, each_line in enumerate(files[len(files) - rare_size:]):
-        name_lmk_score = each_line.strip().split(' ')
-        img_name = os.path.join(img_path, name_lmk_score[0])
-        img = cv2.imread(img_name)
-        lmk = np.array([float(x) for x in name_lmk_score[1:-1]],
-                       dtype=np.float32)
-        lmk = lmk.reshape((5, 2))
-        input_blob = embedding.get(img, lmk)
-        batch_data[2 * img_index][:] = input_blob[0]
-        batch_data[2 * img_index + 1][:] = input_blob[1]
-        if (img_index + 1) % rare_size == 0:
-            print('batch', batch)
-            img_feats[len(files) -
-                      rare_size:][:] = embedding.forward_db(batch_data)
-            batch += 1
-        faceness_scores.append(name_lmk_score[-1])
-    faceness_scores = np.array(faceness_scores).astype(np.float32)
-    # img_feats = np.ones( (len(files), 1024), dtype=np.float32) * 0.01
-    # faceness_scores = np.ones( (len(files), ), dtype=np.float32 )
-    return img_feats, faceness_scores
+            ''' # BERNARDO'S DEBUG TEST
+            debug_test_path = 'results_ijbc/debugging_imgs'
+            if not os.path.exists(debug_test_path):
+                os.mkdir(debug_test_path)
+            debug_img_name = debug_test_path + '/' + img_name.split('/')[-1].split('.')[0] + '.png'
+            print('Saving debug_img_name:', debug_img_name)
+            cv2.imwrite(debug_img_name, cv2.cvtColor(input_blob[0], cv2.COLOR_RGB2BGR))
+            # sys.exit(0)
+            if debug_img_name.endswith('128.png'):
+                sys.exit(0)
+            ''' # BERNARDO'S DEBUG TEST
+
+            batch_data[2 * (img_index - batch * batch_size)][:] = input_blob[0]
+            batch_data[2 * (img_index - batch * batch_size) + 1][:] = input_blob[1]
+            if (img_index + 1) % batch_size == 0:
+                print('batch', batch)
+                img_feats[batch * batch_size:batch * batch_size +
+                                            batch_size][:] = embedding.forward_db(batch_data, model)
+                batch += 1
+            faceness_scores.append(name_lmk_score[-1])
+
+        batch_data = np.empty((2 * rare_size, 3, 112, 112))
+        # batch_data = np.empty((2 * rare_size, 112, 112, 3))
+        embedding = Embedding(model_path, data_shape, rare_size)
+        for img_index, each_line in enumerate(files[len(files) - rare_size:]):
+            name_lmk_score = each_line.strip().split(' ')
+            img_name = os.path.join(img_path, name_lmk_score[0])
+            img = cv2.imread(img_name)
+            lmk = np.array([float(x) for x in name_lmk_score[1:-1]],
+                        dtype=np.float32)
+            lmk = lmk.reshape((5, 2))
+            input_blob = embedding.get(img, lmk)
+            batch_data[2 * img_index][:] = input_blob[0]
+            batch_data[2 * img_index + 1][:] = input_blob[1]
+            if (img_index + 1) % rare_size == 0:
+                print('batch', batch)
+                img_feats[len(files) -
+                        rare_size:][:] = embedding.forward_db(batch_data, model)
+                batch += 1
+            faceness_scores.append(name_lmk_score[-1])
+        faceness_scores = np.array(faceness_scores).astype(np.float32)
+        # img_feats = np.ones( (len(files), 1024), dtype=np.float32) * 0.01
+        # faceness_scores = np.ones( (len(files), ), dtype=np.float32 )
+        return img_feats, faceness_scores
 
 
 # In[ ]:
@@ -311,6 +373,17 @@ def read_score(path):
     return img_feats
 
 
+
+exper_id = model_path.split('/')[-2]            # Bernardo
+save_path = os.path.join(result_dir, exper_id)  # Bernardo
+score_save_file = os.path.join(save_path, "%s.npy" % target.lower())
+label_save_file = os.path.join(save_path, "label.npy")
+img_feats_save_file = os.path.join(save_path, "img_feats.npy")
+faceness_scores_save_file = os.path.join(save_path, "faceness_scores.npy")
+
+
+
+
 # # Step1: Load Meta Data
 
 # In[ ]:
@@ -326,7 +399,7 @@ assert target == 'IJBC' or target == 'IJBB'
 start = timeit.default_timer()
 templates, medias = read_template_media_list(
     os.path.join('%s/meta' % image_path,
-                 '%s_face_tid_mid.txt' % target.lower()))
+                '%s_face_tid_mid.txt' % target.lower()))
 stop = timeit.default_timer()
 print('Time: %.2f s. ' % (stop - start))
 
@@ -341,36 +414,58 @@ print('Time: %.2f s. ' % (stop - start))
 start = timeit.default_timer()
 p1, p2, label = read_template_pair_list(
     os.path.join('%s/meta' % image_path,
-                 '%s_template_pair_label.txt' % target.lower()))
+                '%s_template_pair_label.txt' % target.lower()))
 stop = timeit.default_timer()
 print('Time: %.2f s. ' % (stop - start))
 
-# # Step 2: Get Image Features
 
-# In[ ]:
 
-# =============================================================
-# load image features
-# format:
-#           img_feats: [image_num x feats_dim] (227630, 512)
-# =============================================================
-start = timeit.default_timer()
-# img_path = '%s/loose_crop' % image_path
-img_path = '%s/refined_img' % image_path
-img_list_path = '%s/meta/%s_name_5pts_score.txt' % (image_path, target.lower())
-img_list = open(img_list_path)
-files = img_list.readlines()
-# files_list = divideIntoNstrand(files, rank_size)
-files_list = files
+# Bernardo
+if not os.path.exists(img_feats_save_file):
+    # # Step 2: Get Image Features
 
-# img_feats
-# for i in range(rank_size):
-img_feats, faceness_scores = get_image_feature(img_path, files_list,
-                                               model_path, 0, gpu_id)
-stop = timeit.default_timer()
-print('Time: %.2f s. ' % (stop - start))
-print('Feature Shape: ({} , {}) .'.format(img_feats.shape[0],
-                                          img_feats.shape[1]))
+    # In[ ]:
+
+    # =============================================================
+    # load image features
+    # format:
+    #           img_feats: [image_num x feats_dim] (227630, 512)
+    # =============================================================
+    start = timeit.default_timer()
+    # img_path = '%s/loose_crop' % image_path
+    img_path = '%s/refined_img' % image_path
+    img_list_path = '%s/meta/%s_name_5pts_score.txt' % (image_path, target.lower())
+    img_list = open(img_list_path)
+    files = img_list.readlines()
+    # files_list = divideIntoNstrand(files, rank_size)
+    files_list = files
+
+    # img_feats
+    # for i in range(rank_size):
+    img_feats, faceness_scores = get_image_feature(img_path, files_list,
+                                                model_path, 0, gpu_id)
+    stop = timeit.default_timer()
+    print('Time: %.2f s. ' % (stop - start))
+    print('Feature Shape: ({} , {}) .'.format(img_feats.shape[0],
+                                            img_feats.shape[1]))
+    
+    # Bernardo
+    if not os.path.exists(save_path):
+        os.makedirs(save_path)
+
+    # score_save_file = os.path.join(save_path, "%s.npy" % target.lower())
+    print('Saving img_feats:', img_feats_save_file)
+    np.save(img_feats_save_file, img_feats)
+    print('Saving faceness_scores:', img_feats_save_file)
+    np.save(faceness_scores_save_file, faceness_scores)
+
+else:
+    print('Loading img_feats:', img_feats_save_file)
+    img_feats = np.load(img_feats_save_file)
+    print('Loading faceness_scores:', img_feats_save_file)
+    faceness_scores = np.load(faceness_scores_save_file)
+
+
 
 # # Step3: Get Template Features
 
@@ -392,7 +487,7 @@ if use_flip_test:
     # img_input_feats = img_feats
     # add --- F2
     img_input_feats = img_feats[:, 0:img_feats.shape[1] //
-                                     2] + img_feats[:, img_feats.shape[1] // 2:]
+                                    2] + img_feats[:, img_feats.shape[1] // 2:]
 else:
     img_input_feats = img_feats[:, 0:img_feats.shape[1] // 2]
 
@@ -414,6 +509,10 @@ template_norm_feats, unique_templates = image2template_feature(
 stop = timeit.default_timer()
 print('Time: %.2f s. ' % (stop - start))
 
+
+
+
+
 # # Step 4: Get Template Similarity Scores
 
 # In[ ]:
@@ -426,15 +525,23 @@ score = verification(template_norm_feats, unique_templates, p1, p2)
 stop = timeit.default_timer()
 print('Time: %.2f s. ' % (stop - start))
 
+
 # In[ ]:
-save_path = os.path.join(result_dir, args.job)
+# exper_id = model_path.split('/')[-2]            # Bernardo
+# save_path = os.path.join(result_dir, exper_id)  # Bernardo
+# save_path = os.path.join(result_dir, args.job)
 # save_path = result_dir + '/%s_result' % target
 
 if not os.path.exists(save_path):
     os.makedirs(save_path)
-
-score_save_file = os.path.join(save_path, "%s.npy" % target.lower())
+# score_save_file = os.path.join(save_path, "%s.npy" % target.lower())
+print('Saving scores:', score_save_file)
 np.save(score_save_file, score)
+print('Saving labels:', label_save_file)
+np.save(label_save_file, label)
+
+
+
 
 # # Step 5: Get ROC Curves and TPR@FPR Table
 
@@ -454,6 +561,7 @@ colours = dict(
 x_labels = [10 ** -6, 10 ** -5, 10 ** -4, 10 ** -3, 10 ** -2, 10 ** -1]
 tpr_fpr_table = PrettyTable(['Methods'] + [str(x) for x in x_labels])
 fig = plt.figure()
+roc_auc = 0.0
 for method in methods:
     fpr, tpr, _ = roc_curve(label, scores[method])
     roc_auc = auc(fpr, tpr)
@@ -484,3 +592,6 @@ plt.title('ROC on IJB')
 plt.legend(loc="lower right")
 fig.savefig(os.path.join(save_path, '%s.pdf' % target.lower()))
 print(tpr_fpr_table)
+
+# Bernardo
+print('AUC = %0.4f %%' % (roc_auc * 100))

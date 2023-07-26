@@ -101,3 +101,8 @@ ENV/
 .mypy_cache/
 
 .DS_Store
+
+# Bernardo
+recognition/arcface_torch/trained_models/*
+recognition/arcface_torch/results_ijbc/*
+recognition/model/*
