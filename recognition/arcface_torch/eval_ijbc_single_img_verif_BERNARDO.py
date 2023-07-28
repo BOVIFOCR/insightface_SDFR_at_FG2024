@@ -40,12 +40,13 @@ parser = argparse.ArgumentParser(description='do ijb test')
 parser.add_argument('--model-prefix', default='/home/bjgbiesseck/GitHub/insightface/recognition/arcface_torch/trained_models/ms1mv3_arcface_r50_fp16/backbone.pth', help='path to load model.')
 parser.add_argument('--network', default='r50', type=str, help='')
 
-# RESNET 100
+# # RESNET 100
 # parser.add_argument('--model-prefix', default='/home/bjgbiesseck/GitHub/insightface/recognition/arcface_torch/trained_models/ms1mv3_arcface_r100_fp16/backbone.pth', help='path to load model.')
 # parser.add_argument('--network', default='r100', type=str, help='')
 
 # parser.add_argument('--image-path', default='/datasets1/bjgbiesseck/IJB-C/rec_data_ijbc/', type=str, help='')
-parser.add_argument('--image-path', default='/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/crops/', type=str, help='')
+# parser.add_argument('--image-path', default='/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/crops/', type=str, help='')
+parser.add_argument('--image-path', default='/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/crops_align/', type=str, help='')
 parser.add_argument('--result-dir', default='results_ijbc_single_img', type=str, help='')
 parser.add_argument('--batch-size', default=128, type=int, help='')
 parser.add_argument('--job', default='insightface', type=str, help='job name')
@@ -111,7 +112,7 @@ class Embedding(object):
         #                      borderValue=0.0)
         img = rimg   # Bernardo
 
-        # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img_flip = np.fliplr(img)
         img = np.transpose(img, (2, 0, 1))  # 3*112*112, RGB
         img_flip = np.transpose(img_flip, (2, 0, 1))
@@ -289,25 +290,6 @@ def get_image_feature(img_path, files_list, model_path, epoch, gpu_id):
     faceness_scores = []
     batch = 0
     img_feats = np.empty((len(files), 1024), dtype=np.float32)
-
-    # Bernardo
-    '''
-    config = yaml.load(open(args.config_path))
-    images = tf.placeholder(dtype=tf.float32, shape=[None, config['image_size'], config['image_size'], 3], name='input_image')
-    train_phase_dropout = tf.placeholder(dtype=tf.bool, shape=None, name='train_phase')
-    train_phase_bn = tf.placeholder(dtype=tf.bool, shape=None, name='train_phase_last')
-    embds, _ = get_embd(images, train_phase_dropout, train_phase_bn, config)
-    print('done!')
-    tf_config = tf.ConfigProto(allow_soft_placement=True)
-    tf_config.gpu_options.allow_growth = True
-    with tf.Session(config=tf_config) as sess:
-        tf.global_variables_initializer().run()
-        print('loading model:', model_path)
-        saver = tf.train.Saver()
-        saver.restore(sess, model_path)
-        print('done!')
-        # Bernardo
-    '''
     
     image_size = (112, 112)
     # self.image_size = image_size
@@ -329,7 +311,17 @@ def get_image_feature(img_path, files_list, model_path, epoch, gpu_id):
             lmk = np.array([float(x) for x in name_lmk_score[1:-1]],
                         dtype=np.float32)
             lmk = lmk.reshape((5, 2))
-            img = resize_img(img, (112, 112))   # Bernardo
+
+            # img = resize_img(img, (112, 112))   # Bernardo
+
+            # # TESTE BERNARDO
+            # folder_resized_img = save_path + '/cropped_imgs'
+            # path_resized_img = os.path.join(folder_resized_img, '/'.join(img_name.split('/')[-2:]))
+            # if not os.path.isdir(Path(path_resized_img).parent): os.makedirs(Path(path_resized_img).parent)
+            # print(f'Saving \'{path_resized_img}\'')
+            # cv2.imwrite(path_resized_img, img)
+            # # TESTE BERNARDO
+
             input_blob = embedding.get(img, lmk)
 
             batch_data[2 * (img_index - batch * batch_size)][:] = input_blob[0]
@@ -351,7 +343,9 @@ def get_image_feature(img_path, files_list, model_path, epoch, gpu_id):
             lmk = np.array([float(x) for x in name_lmk_score[1:-1]],
                         dtype=np.float32)
             lmk = lmk.reshape((5, 2))
-            img = resize_img(img, (112, 112))   # Bernardo
+
+            # img = resize_img(img, (112, 112))   # Bernardo
+
             input_blob = embedding.get(img, lmk)
             batch_data[2 * img_index][:] = input_blob[0]
             batch_data[2 * img_index + 1][:] = input_blob[1]
