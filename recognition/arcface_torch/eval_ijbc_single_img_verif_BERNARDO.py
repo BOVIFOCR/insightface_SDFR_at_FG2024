@@ -266,9 +266,11 @@ def get_image_feature(img_path, files_list, model_path, epoch, gpu_id):
     faceness_scores = []
     batch = 0
     img_feats = np.empty((len(files), 1024), dtype=np.float32)
-
     image_size = (112, 112)
     # self.image_size = image_size
+
+    # LOAD TRAINED MODEL
+    print(f'Loading trained model \'{model_path}\'...')
     weight = torch.load(model_path)
     resnet = get_model(args.network, dropout=0, fp16=False).cuda()
     resnet.load_state_dict(weight)
@@ -280,6 +282,8 @@ def get_image_feature(img_path, files_list, model_path, epoch, gpu_id):
         batch_data = np.empty((2 * batch_size, 3, 112, 112))
         # batch_data = np.empty((2 * batch_size, 112, 112, 3))
         embedding = Embedding(model_path, data_shape, batch_size)
+        num_batches = int(np.ceil(len(files) / batch_size))
+        print('Computing embeddings...')
         for img_index, each_line in enumerate(files[:len(files) - rare_size]):
             name_lmk_score = each_line.strip().split(' ')
             img_name = os.path.join(img_path, name_lmk_score[0])
@@ -293,7 +297,8 @@ def get_image_feature(img_path, files_list, model_path, epoch, gpu_id):
             batch_data[2 * (img_index - batch * batch_size)][:] = input_blob[0]
             batch_data[2 * (img_index - batch * batch_size) + 1][:] = input_blob[1]
             if (img_index + 1) % batch_size == 0:
-                print('batch', batch)
+                # print('batch', batch)
+                print(f'batch {batch}/{num_batches-1}', end='\r')
                 img_feats[batch * batch_size:batch * batch_size +
                                             batch_size][:] = embedding.forward_db(batch_data, model)
                 batch += 1
@@ -314,7 +319,8 @@ def get_image_feature(img_path, files_list, model_path, epoch, gpu_id):
             batch_data[2 * img_index][:] = input_blob[0]
             batch_data[2 * img_index + 1][:] = input_blob[1]
             if (img_index + 1) % rare_size == 0:
-                print('batch', batch)
+                # print('batch', batch)
+                print(f'batch {batch}/{num_batches-1}', end='\r')
                 img_feats[len(files) -
                         rare_size:][:] = embedding.forward_db(batch_data, model)
                 batch += 1
@@ -322,6 +328,7 @@ def get_image_feature(img_path, files_list, model_path, epoch, gpu_id):
         faceness_scores = np.array(faceness_scores).astype(np.float32)
         # img_feats = np.ones( (len(files), 1024), dtype=np.float32) * 0.01
         # faceness_scores = np.ones( (len(files), ), dtype=np.float32 )
+        print('')
         return img_feats, faceness_scores
 
 
@@ -357,10 +364,11 @@ def image2template_feature(img_feats=None, templates=None, medias=None):
         # media_norm_feats = media_norm_feats / np.sqrt(np.sum(media_norm_feats ** 2, -1, keepdims=True))
         template_feats[count_template] = np.sum(media_norm_feats, axis=0)
         if count_template % 2000 == 0:
-            print('Finish Calculating {} template features.'.format(
-                count_template))
+            # print('Finish Calculating {} template features.'.format(count_template))
+            print(f'Finish Calculating template features: {count_template}/{img_feats.shape[0]}', end='\r')
     # template_norm_feats = template_feats / np.sqrt(np.sum(template_feats ** 2, -1, keepdims=True))
     template_norm_feats = sklearn.preprocessing.normalize(template_feats)
+    print('')
     return template_norm_feats, unique_templates
 
 
@@ -392,7 +400,9 @@ def verification(template_norm_feats=None,
         similarity_score = np.sum(feat1 * feat2, -1)
         score[s] = similarity_score.flatten()
         if c % 10 == 0:
-            print('Finish {}/{} pairs.'.format(c, total_sublists))
+            # print('Finish {}/{} pairs.'.format(c, total_sublists))
+            print('Finish {}/{} pairs.'.format(c, total_sublists), end='\r')
+    print('')
     return score
 
 
@@ -437,28 +447,30 @@ faceness_scores_save_file = os.path.join(save_path, "faceness_scores.npy")
 
 
 
-
 # # Step1: Load Meta Data
-
 # In[ ]:
-
-assert target == 'IJBC' or target == 'IJBB'
-
 # =============================================================
 # load image and template relationships for template feature embedding
 # tid --> template id,  mid --> media id
 # format:
 #           image_name tid mid
 # =============================================================
+assert target == 'IJBC' or target == 'IJBB'
 start = timeit.default_timer()
 # templates, medias = read_template_media_list(os.path.join('%s/meta' % image_path, '%s_face_tid_mid.txt' % target.lower()))
-enroll_template_id, enroll_subject_id, enroll_filenames = read_template_original_ijbc('/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/protocols/test2/enroll_templates.csv')  # one image protocol
-verif_template_id, verif_subject_id, verif_filenames = read_template_original_ijbc('/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/protocols/test2/verif_templates.csv')      # one image protocol
+path_enroll_templates = '/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/protocols/test2/enroll_templates.csv'
+path_verif_templates = '/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/protocols/test2/verif_templates.csv'
+print(f'Loading enroll templates \'{path_enroll_templates}\'...')
+enroll_template_id, enroll_subject_id, enroll_filenames = read_template_original_ijbc(path_enroll_templates)  # one image protocol
+print(f'num enroll templates: {len(enroll_template_id)}')
+print(f'Loading verification templates \'{path_verif_templates}\'...')
+verif_template_id, verif_subject_id, verif_filenames = read_template_original_ijbc(path_verif_templates)      # one image protocol
+print(f'num verif templates: {len(verif_template_id)}')
 stop = timeit.default_timer()
 print('Time: %.2f s. ' % (stop - start))
+print('----------------------')
 
 # In[ ]:
-
 # =============================================================
 # load template pairs for template-to-template verification
 # tid : template id,  label : 1/0
@@ -467,21 +479,26 @@ print('Time: %.2f s. ' % (stop - start))
 # =============================================================
 start = timeit.default_timer()
 # p1, p2, label = read_template_pair_list(os.path.join('%s/meta' % image_path, '%s_template_pair_label.txt' % target.lower()))
-p1, p2 = read_template_pair_list_original_ijbc('/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/protocols/test2/match.csv')
-# p1, p2 = read_template_pair_list_original_ijbc('/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/protocols/test2/match_TEST_BERNARDO.csv')
+# path_match_pairs = '/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/protocols/test2/match_TEST_BERNARDO.csv'  # TOY EXAMPLE
+path_match_pairs = '/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/protocols/test2/match.csv'
+print(f'Loading match pairs indexes \'{path_match_pairs}\'...')
+p1, p2 = read_template_pair_list_original_ijbc(path_match_pairs)
 label = make_labels_from_template_pairs_original_ijbc(enroll_template_id, enroll_subject_id, verif_template_id, verif_subject_id, p1, p2)
-
+num_genuine_pairs = np.sum(label == 1)
+num_impostor_pairs = np.sum(label == 0)
+assert num_genuine_pairs+num_impostor_pairs == len(label)
+print(f'num pairs: {len(label)}    (genuine: {num_genuine_pairs}    impostor: {num_impostor_pairs})')
 stop = timeit.default_timer()
 print('Time: %.2f s. ' % (stop - start))
+print('----------------------')
 
 
 
-# Bernardo
-if not os.path.exists(img_feats_save_file):
-    # # Step 2: Get Image Features
 
+
+# # Step 2: Get Image Features
+if not os.path.exists(img_feats_save_file):   # Bernardo
     # In[ ]:
-
     # =============================================================
     # load image features
     # format:
@@ -512,11 +529,13 @@ else:
     faceness_scores = np.load(faceness_scores_save_file)
 
     print('Feature Shape: ({} , {}) .'.format(img_feats.shape[0], img_feats.shape[1]))
+print('----------------------')
+
+
 
 
 
 # # Step3: Get Template Features
-
 # In[ ]:
 
 # =============================================================
@@ -547,29 +566,30 @@ else:
         np.sum(img_input_feats ** 2, -1, keepdims=True))
 
 if use_detector_score:
-    print(img_input_feats.shape, faceness_scores.shape)
     img_input_feats = img_input_feats * faceness_scores[:, np.newaxis]
 else:
     img_input_feats = img_input_feats
 
+print('Computing template embeddings...')
 # template_norm_feats, unique_templates = image2template_feature(img_input_feats, templates, medias)                     # original
 template_norm_feats, unique_templates = image2template_feature(img_input_feats, enroll_template_id, verif_template_id)   # Bernardo
-
+print('Template Features Shape: ({} , {}) .'.format(template_norm_feats.shape[0], template_norm_feats.shape[1]))
 stop = timeit.default_timer()
 print('Time: %.2f s. ' % (stop - start))
+print('----------------------')
 
 
 
 
 
 # # Step 4: Get Template Similarity Scores
-
 # In[ ]:
 
 # =============================================================
 # compute verification scores between template pairs.
 # =============================================================
 start = timeit.default_timer()
+print('Computing pairs similarity scores...')
 score = verification(template_norm_feats, unique_templates, p1, p2)
 stop = timeit.default_timer()
 print('Time: %.2f s. ' % (stop - start))
@@ -581,6 +601,7 @@ print('Saving scores:', score_save_file)
 np.save(score_save_file, score)
 print('Saving labels:', label_save_file)
 np.save(label_save_file, label)
+print('----------------------')
 
 
 
@@ -604,6 +625,7 @@ x_labels = [10 ** -6, 10 ** -5, 10 ** -4, 10 ** -3, 10 ** -2, 10 ** -1]
 tpr_fpr_table = PrettyTable(['Methods'] + [str(x) for x in x_labels])
 fig = plt.figure()
 roc_auc = 0.0
+print('Evaluating model...')
 for method in methods:
     fpr, tpr, _ = roc_curve(label, scores[method])
     roc_auc = auc(fpr, tpr)
@@ -632,8 +654,9 @@ plt.xlabel('False Positive Rate')
 plt.ylabel('True Positive Rate')
 plt.title('ROC on IJB')
 plt.legend(loc="lower right")
-fig.savefig(os.path.join(save_path, '%s.pdf' % target.lower()))
+# fig.savefig(os.path.join(save_path, '%s.pdf' % target.lower()))
+path_save_fig = os.path.join(save_path, '%s.pdf' % target.lower())
+print(f'Saving ROC curve \'{path_save_fig}\'')
+fig.savefig(path_save_fig)
 print(tpr_fpr_table)
-
-# Bernardo
-print('AUC = %0.4f %%' % (roc_auc * 100))
+print('AUC = %0.4f %%' % (roc_auc * 100))   # Bernardo
