@@ -45,7 +45,7 @@ parser.add_argument('--model-prefix', default='/home/bjgbiesseck/GitHub/insightf
 parser.add_argument('--network', default='r100', type=str, help='')
 
 parser.add_argument('--image-path', default='/datasets1/bjgbiesseck/IJB-C/rec_data_ijbc/', type=str, help='')
-parser.add_argument('--result-dir', default='results_ijbc', type=str, help='')
+parser.add_argument('--result-dir', default='results_ijbc_template', type=str, help='')
 parser.add_argument('--batch-size', default=128, type=int, help='')
 parser.add_argument('--job', default='insightface', type=str, help='job name')
 parser.add_argument('--target', default='IJBC', type=str, help='target, set to IJBC or IJBB')
@@ -182,28 +182,10 @@ def get_image_feature(img_path, files_list, model_path, epoch, gpu_id):
     faceness_scores = []
     batch = 0
     img_feats = np.empty((len(files), 1024), dtype=np.float32)
-
-    # Bernardo
-    '''
-    config = yaml.load(open(args.config_path))
-    images = tf.placeholder(dtype=tf.float32, shape=[None, config['image_size'], config['image_size'], 3], name='input_image')
-    train_phase_dropout = tf.placeholder(dtype=tf.bool, shape=None, name='train_phase')
-    train_phase_bn = tf.placeholder(dtype=tf.bool, shape=None, name='train_phase_last')
-    embds, _ = get_embd(images, train_phase_dropout, train_phase_bn, config)
-    print('done!')
-    tf_config = tf.ConfigProto(allow_soft_placement=True)
-    tf_config.gpu_options.allow_growth = True
-    with tf.Session(config=tf_config) as sess:
-        tf.global_variables_initializer().run()
-        print('loading model:', model_path)
-        saver = tf.train.Saver()
-        saver.restore(sess, model_path)
-        print('done!')
-        # Bernardo
-    '''
-    
     image_size = (112, 112)
     # self.image_size = image_size
+
+    # LOAD TRAINED MODEL
     weight = torch.load(model_path)
     resnet = get_model(args.network, dropout=0, fp16=False).cuda()
     resnet.load_state_dict(weight)
@@ -223,19 +205,6 @@ def get_image_feature(img_path, files_list, model_path, epoch, gpu_id):
                         dtype=np.float32)
             lmk = lmk.reshape((5, 2))
             input_blob = embedding.get(img, lmk)
-
-            ''' # BERNARDO'S DEBUG TEST
-            debug_test_path = 'results_ijbc/debugging_imgs'
-            if not os.path.exists(debug_test_path):
-                os.mkdir(debug_test_path)
-            debug_img_name = debug_test_path + '/' + img_name.split('/')[-1].split('.')[0] + '.png'
-            print('Saving debug_img_name:', debug_img_name)
-            cv2.imwrite(debug_img_name, cv2.cvtColor(input_blob[0], cv2.COLOR_RGB2BGR))
-            # sys.exit(0)
-            if debug_img_name.endswith('128.png'):
-                sys.exit(0)
-            ''' # BERNARDO'S DEBUG TEST
-
             batch_data[2 * (img_index - batch * batch_size)][:] = input_blob[0]
             batch_data[2 * (img_index - batch * batch_size) + 1][:] = input_blob[1]
             if (img_index + 1) % batch_size == 0:
@@ -385,7 +354,6 @@ faceness_scores_save_file = os.path.join(save_path, "faceness_scores.npy")
 
 
 # # Step1: Load Meta Data
-
 # In[ ]:
 
 assert target == 'IJBC' or target == 'IJBB'
@@ -467,8 +435,9 @@ else:
 
 
 
-# # Step3: Get Template Features
 
+
+# # Step3: Get Template Features
 # In[ ]:
 
 # =============================================================
@@ -514,7 +483,6 @@ print('Time: %.2f s. ' % (stop - start))
 
 
 # # Step 4: Get Template Similarity Scores
-
 # In[ ]:
 
 # =============================================================
@@ -544,7 +512,6 @@ np.save(label_save_file, label)
 
 
 # # Step 5: Get ROC Curves and TPR@FPR Table
-
 # In[ ]:
 
 files = [score_save_file]
