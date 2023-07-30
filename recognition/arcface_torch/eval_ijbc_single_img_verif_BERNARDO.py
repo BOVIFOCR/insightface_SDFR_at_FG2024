@@ -660,5 +660,13 @@ plt.legend(loc="lower right")
 path_save_fig = os.path.join(save_path, '%s.pdf' % target.lower())
 print(f'Saving ROC curve \'{path_save_fig}\'')
 fig.savefig(path_save_fig)
+
+path_save_tpr_fpr_table = os.path.join(save_path, '%s_tpr_fpr_table.txt' % target.lower())
+with open(path_save_tpr_fpr_table, 'w') as f:
+    print(f'Saving tpr_fpr_table \'{path_save_tpr_fpr_table}\'')
+    f.write('tpr_fpr_table\n')
+    f.write(tpr_fpr_table.get_string())
+    f.write('\nROC-AUC = %0.4f %%\n' % (roc_auc * 100))
+
 print(tpr_fpr_table)
-print('AUC = %0.4f %%' % (roc_auc * 100))   # Bernardo
+print('ROC-AUC = %0.4f %%' % (roc_auc * 100))   # Bernardo
