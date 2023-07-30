@@ -445,6 +445,12 @@ label_save_file = os.path.join(save_path, "label.npy")
 img_feats_save_file = os.path.join(save_path, "img_feats.npy")
 faceness_scores_save_file = os.path.join(save_path, "faceness_scores.npy")
 
+# Verification protocol files
+path_enroll_templates = '/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/protocols/test2/enroll_templates.csv'
+path_verif_templates =  '/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/protocols/test2/verif_templates.csv'
+path_match_pairs =      '/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/protocols/test2/match.csv'
+# path_match_pairs =    '/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/protocols/test2/match_TEST_BERNARDO.csv'  # Toy example for sanity check
+
 
 
 # # Step1: Load Meta Data
@@ -458,8 +464,6 @@ faceness_scores_save_file = os.path.join(save_path, "faceness_scores.npy")
 assert target == 'IJBC' or target == 'IJBB'
 start = timeit.default_timer()
 # templates, medias = read_template_media_list(os.path.join('%s/meta' % image_path, '%s_face_tid_mid.txt' % target.lower()))
-path_enroll_templates = '/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/protocols/test2/enroll_templates.csv'
-path_verif_templates = '/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/protocols/test2/verif_templates.csv'
 print(f'Loading enroll templates \'{path_enroll_templates}\'...')
 enroll_template_id, enroll_subject_id, enroll_filenames = read_template_original_ijbc(path_enroll_templates)  # one image protocol
 print(f'num enroll templates: {len(enroll_template_id)}')
@@ -479,8 +483,6 @@ print('----------------------')
 # =============================================================
 start = timeit.default_timer()
 # p1, p2, label = read_template_pair_list(os.path.join('%s/meta' % image_path, '%s_template_pair_label.txt' % target.lower()))
-# path_match_pairs = '/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/protocols/test2/match_TEST_BERNARDO.csv'  # TOY EXAMPLE
-path_match_pairs = '/datasets1/bjgbiesseck/IJB-C/IJB/IJB-C/protocols/test2/match.csv'
 print(f'Loading match pairs indexes \'{path_match_pairs}\'...')
 p1, p2 = read_template_pair_list_original_ijbc(path_match_pairs)
 label = make_labels_from_template_pairs_original_ijbc(enroll_template_id, enroll_subject_id, verif_template_id, verif_subject_id, p1, p2)
