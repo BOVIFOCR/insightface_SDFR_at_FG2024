@@ -342,7 +342,7 @@ def compute_score_between_template_samples(img_input_feats, templates, medias, p
         beg_idx_sampl_score = end_idx_sampl_score
 
         if c > 0 and c % 10000 == 0:
-            print(f'template: {c}/{len(p1)}')
+            print(f'pair: {c}/{len(p1)}')
             # print('t1:', t1)
             # print('t2:', t2)
             stop = timeit.default_timer()
@@ -431,7 +431,7 @@ def evaluate_model_majority_voting_template(templates, p1, p2, templ_true_label,
             beg_idx_sampl_score = end_idx_sampl_score
 
             if c > 0 and c % 10000 == 0:
-                print(f'{threshold_idx}/{nrof_thresholds} - threshold: {threshold}    template: {c}/{len(p1)}')
+                print(f'{threshold_idx}/{nrof_thresholds} - threshold: {threshold}    pair: {c}/{len(p1)}')
                 # print(f'template: {c}/{len(p1)}')
                 # print('t1:', t1)
                 # print('t2:', t2)
