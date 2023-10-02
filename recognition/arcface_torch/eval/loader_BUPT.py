@@ -1,5 +1,6 @@
 import sys, os
 import cv2
+import numpy as np
 import torch
 import mxnet as mx
 from mxnet import ndarray as nd
@@ -68,13 +69,21 @@ class Loader_BUPT:
     def load_dataset(self, protocol_file, data_dir, image_size, replace_ext='.png'):
         pairs = self.load_protocol(protocol_file)
         pairs = self.update_paths(pairs, data_dir, replace_ext)
-        
+
         data_list = []
         for flip in [0, 1]:
             data = torch.empty((len(pairs)*2, 3, image_size[0], image_size[1]))
             data_list.append(data)
-        
+
         issame_list = [bool(pairs[i]['pair_label']) for i in range(len(pairs))]
+        races_list = np.array([(pairs[i]['sample0_race'], pairs[i]['sample1_race']) for i in range(len(pairs))])
+        subj_list = np.array([(pairs[i]['sample0_subj'], pairs[i]['sample1_subj']) for i in range(len(pairs))])
+        # for i, (label, races, subjs) in enumerate(zip(issame_list, races_list, subj_list)):
+        #     print(f'pair:{i} - label: {label} - races: {races} - subjs: {subjs}')
+        # print('len(issame_list):', len(issame_list))
+        # print('len(races_list):', len(races_list))
+        # print('len(subj_list):', len(subj_list))
+        # sys.exit(0)
 
         for idx in range(len(pairs) * 2):
             # _bin = bins[idx]
@@ -97,6 +106,6 @@ class Loader_BUPT:
             if idx % 1000 == 0:
                 print('loading pair', idx)
         print(data_list[0].shape)
-        return data_list, issame_list
+        return data_list, issame_list, races_list, subj_list
 
 
