@@ -43,6 +43,8 @@ from backbones import get_model
 
 import argparse   # Bernardo
 
+from loader_BUPT import Loader_BUPT
+
 
 class LFold:
     def __init__(self, n_splits=2, shuffle=False):
@@ -337,8 +339,9 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='do verification')
     # general
-    # parser.add_argument('--data-dir', default='', help='')                                               # original
-    parser.add_argument('--data-dir', default='/datasets1/bjgbiesseck/MS-Celeb-1M/faces_emore', help='')   # Bernardo
+    # parser.add_argument('--data-dir', default='', help='')                                                                                   # original
+    # parser.add_argument('--data-dir', default='/datasets1/bjgbiesseck/MS-Celeb-1M/faces_emore', help='')                                     # Bernardo
+    parser.add_argument('--data-dir', default='/datasets2/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_112x112', help='')   # Bernardo
 
     parser.add_argument('--network', default='r100', type=str, help='')
     parser.add_argument('--model',
@@ -348,9 +351,11 @@ if __name__ == '__main__':
                         help='path to load model.')
     parser.add_argument('--target',
                         # default='lfw,cfp_ff,cfp_fp,agedb_30',          # original
-                        # default='lfw,cfp_fp,agedb_30',                   # original
-                        default='lfw',                                 # Bernardo
+                        # default='lfw,cfp_fp,agedb_30',                 # original
+                        # default='lfw',                                 # Bernardo
+                        default='bupt',                                  # Bernardo
                         help='test targets.')
+    parser.add_argument('--protocol', default='/datasets2/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt', type=str, help='')
     parser.add_argument('--gpu', default=0, type=int, help='gpu id')
     parser.add_argument('--batch-size', default=32, type=int, help='')
     parser.add_argument('--max', default='', type=str, help='')
@@ -442,6 +447,17 @@ if __name__ == '__main__':
             data_set = load_bin(path, image_size)
             ver_list.append(data_set)
             ver_name_list.append(name)
+            # sys.exit(0)
+        
+        else:
+            if name.lower() == 'bupt':
+                data_set = Loader_BUPT().load_dataset(args.protocol, args.data_dir, image_size)
+                ver_list.append(data_set)
+                ver_name_list.append(name)
+                # print('data_set:', data_set)
+                # sys.exit(0)
+            else:
+                raise Exception(f'Error, no \'.bin\' file found in \'{args.data_dir}\'')
 
     # Bernardo
     # print('nets:', nets)
