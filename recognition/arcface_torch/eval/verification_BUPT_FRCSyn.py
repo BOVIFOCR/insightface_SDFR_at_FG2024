@@ -301,9 +301,18 @@ def test(data_set, backbone, batch_size, nfolds=10):
 def get_races_combinations():
     races = ['African', 'Asian', 'Caucasian', 'Indian']
     races_comb = [(race, race) for race in races]
-    races_comb += list(itertools.combinations(races, 2))
-    # races_comb += list(itertools.permutations(races, 2))
+    # races_comb += list(itertools.combinations(races, 2))
     return sorted(races_comb)
+
+
+def get_avg_metrics_races(metrics_races=[]):
+    avg_metrics_races = {}
+    races_combs = get_races_combinations()
+    for i, race_comb in enumerate(races_combs):
+        avg_metrics_races[race_comb] = {}
+        avg_metrics_races[race_comb]['acc_mean'] = 0.0
+        for j, fold_idx in range(len(metrics_races)):
+            metrics_races[j]['acc_mean'][race_comb] += metrics_races[i]['acc'][race_comb]
 
 
 
@@ -325,6 +334,7 @@ def calculate_roc_analyze_races(thresholds,
     fprs = np.zeros((nrof_folds, nrof_thresholds))
     accuracy = np.zeros((nrof_folds))
     indices = np.arange(nrof_pairs)
+    metrics_races = [None] * nrof_folds
 
     if pca == 0:
         diff = np.subtract(embeddings1, embeddings2)
@@ -349,15 +359,16 @@ def calculate_roc_analyze_races(thresholds,
         acc_train = np.zeros((nrof_thresholds))
         for threshold_idx, threshold in enumerate(thresholds):
             _, _, acc_train[threshold_idx] = calculate_accuracy_analyze_races(
-                threshold, dist[train_set], actual_issame[train_set], races_list[train_set], subj_list[train_set])
+                threshold, dist[train_set], actual_issame[train_set], races_list=None, subj_list=None)
         best_threshold_index = np.argmax(acc_train)
         for threshold_idx, threshold in enumerate(thresholds):
             tprs[fold_idx, threshold_idx], fprs[fold_idx, threshold_idx], _ = calculate_accuracy_analyze_races(
-                threshold, dist[test_set],
-                actual_issame[test_set], races_list[test_set], subj_list[test_set])
-        _, _, accuracy[fold_idx] = calculate_accuracy_analyze_races(
+                threshold, dist[test_set], actual_issame[test_set], races_list=None, subj_list=None)
+        _, _, accuracy[fold_idx], metrics_races[fold_idx] = calculate_accuracy_analyze_races(
             thresholds[best_threshold_index], dist[test_set],
             actual_issame[test_set], races_list[test_set], subj_list[test_set])
+
+    avg_metrics_races = get_avg_metrics_races(metrics_races)
 
     tpr = np.mean(tprs, 0)
     fpr = np.mean(fprs, 0)
@@ -368,28 +379,43 @@ def calculate_accuracy_analyze_races(threshold, dist, actual_issame, races_list,
     predict_issame = np.less(dist, threshold)
     tp = np.sum(np.logical_and(predict_issame, actual_issame))
     fp = np.sum(np.logical_and(predict_issame, np.logical_not(actual_issame)))
-    tn = np.sum(
-        np.logical_and(np.logical_not(predict_issame),
-                       np.logical_not(actual_issame)))
+    tn = np.sum(np.logical_and(np.logical_not(predict_issame), np.logical_not(actual_issame)))
     fn = np.sum(np.logical_and(np.logical_not(predict_issame), actual_issame))
 
     tpr = 0 if (tp + fn == 0) else float(tp) / float(tp + fn)
     fpr = 0 if (fp + tn == 0) else float(fp) / float(fp + tn)
     acc = float(tp + tn) / dist.size
 
-    '''
     # race analysis (African, Asian, Caucasian, Indian)
-    tp_races = {}
-    races_combs = get_races_combinations()
-    for race_comb in races_combs:
-        # indices_race_comb = races_list==race_comb
-        # comparison = np.all(arr == target_list, axis=1)
-        indices_race_comb = np.where(np.all(races_list == race_comb, axis=1))[0]
-        tp_races[race_comb] = np.sum(np.logical_and(predict_issame[indices_race_comb], actual_issame[indices_race_comb]))
-        # print(f'tp_races[{race_comb}]:', tp_races[race_comb])
-    '''
+    if not races_list is None and not subj_list is None:
+        metrics_races = {}
+        metrics_races['tp'] = {}
+        metrics_races['fp'] = {}
+        metrics_races['tn'] = {}
+        metrics_races['fn'] = {}
+        metrics_races['tpr'] = {}
+        metrics_races['fpr'] = {}
+        metrics_races['acc'] = {}
+        races_combs = get_races_combinations()
+        for i, race_comb in enumerate(races_combs):
+            indices_race_comb = np.where(np.all(races_list == race_comb, axis=1))[0]
+            metrics_races['tp'][race_comb] = np.sum(np.logical_and(predict_issame[indices_race_comb], actual_issame[indices_race_comb]))
+            metrics_races['fp'][race_comb] = np.sum(np.logical_and(predict_issame[indices_race_comb], np.logical_not(actual_issame[indices_race_comb])))
+            metrics_races['tn'][race_comb] = np.sum(np.logical_and(np.logical_not(predict_issame[indices_race_comb]), np.logical_not(actual_issame[indices_race_comb])))
+            metrics_races['fn'][race_comb] = np.sum(np.logical_and(np.logical_not(predict_issame[indices_race_comb]), actual_issame[indices_race_comb]))
 
-    return tpr, fpr, acc
+            metrics_races['tpr'][race_comb] = 0 if (metrics_races['tp'][race_comb] + metrics_races['fn'][race_comb] == 0) else float(metrics_races['tp'][race_comb]) / float(metrics_races['tp'][race_comb] + metrics_races['fn'][race_comb])
+            metrics_races['fpr'][race_comb] = 0 if (metrics_races['fp'][race_comb] + metrics_races['tn'][race_comb] == 0) else float(metrics_races['fp'][race_comb]) / float(metrics_races['fp'][race_comb] + metrics_races['tn'][race_comb])
+            metrics_races['acc'][race_comb] = 0 if indices_race_comb.size == 0 else float(metrics_races['tp'][race_comb] + metrics_races['tn'][race_comb]) / indices_race_comb.size
+            print(f'i: {i} - acc: {acc} - metrics_races[\'acc\'][{race_comb}]: ' + str(metrics_races['acc'][race_comb]), end='')
+            print(f' | tpr: {tpr} - metrics_races[\'tpr\'][{race_comb}]: ' + str(metrics_races['tpr'][race_comb]), end='')
+            print(f' | fpr: {fpr} - metrics_races[\'fpr\'][{race_comb}]: ' + str(metrics_races['fpr'][race_comb]))
+        # sys.exit(0)
+
+    if races_list is None:
+        return tpr, fpr, acc
+    else:
+        return tpr, fpr, acc, metrics_races
 
 
 def calculate_val_analyze_races(thresholds,
@@ -649,51 +675,6 @@ if __name__ == '__main__':
     prefix = args.model.split(',')[0]
     epochs = []
 
-    # Bernardo
-    print('args.model:', args.model)
-    print('vec:', vec)
-    print('prefix:', prefix)
-
-
-    '''
-    # LOADING MODEL WITH MXNET
-    if len(vec) == 1:
-        pdir = os.path.dirname(prefix)
-        for fname in os.listdir(pdir):
-            if not fname.endswith('.params'):
-                continue
-            _file = os.path.join(pdir, fname)
-            if _file.startswith(prefix):
-                epoch = int(fname.split('.')[0].split('-')[1])
-                epochs.append(epoch)
-        epochs = sorted(epochs, reverse=True)
-        if len(args.max) > 0:
-            _max = [int(x) for x in args.max.split(',')]
-            assert len(_max) == 2
-            if len(epochs) > _max[1]:
-                epochs = epochs[_max[0]:_max[1]]
-
-    else:
-        epochs = [int(x) for x in vec[1].split('|')]
-    print('model number', len(epochs))
-    time0 = datetime.datetime.now()
-    for epoch in epochs:
-        print('loading', prefix, epoch)
-        sym, arg_params, aux_params = mx.model.load_checkpoint(prefix, epoch)
-        # arg_params, aux_params = ch_dev(arg_params, aux_params, ctx)
-        all_layers = sym.get_internals()
-        sym = all_layers['fc1_output']
-        model = mx.mod.Module(symbol=sym, context=ctx, label_names=None)
-        # model.bind(data_shapes=[('data', (args.batch_size, 3, image_size[0], image_size[1]))], label_shapes=[('softmax_label', (args.batch_size,))])
-        model.bind(data_shapes=[('data', (args.batch_size, 3, image_size[0],
-                                          image_size[1]))])
-        model.set_params(arg_params, aux_params)
-        nets.append(model)
-    time_now = datetime.datetime.now()
-    diff = time_now - time0
-    print('model loading time', diff.total_seconds())
-    '''
-
     # LOADING MODEL WITH PYTORCH
     nets = []
     time0 = datetime.datetime.now()
@@ -743,8 +724,6 @@ if __name__ == '__main__':
             else:
                 raise Exception(f'Error, no \'.bin\' file found in \'{args.data_dir}\'')
 
-    # Bernardo
-    # print('nets:', nets)
 
     if args.mode == 0:
         for i in range(len(ver_list)):
