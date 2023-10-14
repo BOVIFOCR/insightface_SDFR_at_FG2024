@@ -171,4 +171,5 @@ dependencies:
     - wcwidth==0.2.6
     - werkzeug==2.2.3
     - xgboost==1.6.2
-prefix: /home/bjgbiesseck/anaconda3/envs/bjgbiesseck_insightface_py37
+# prefix: /home/bjgbiesseck/anaconda3/envs/bjgbiesseck_insightface_py37
+
