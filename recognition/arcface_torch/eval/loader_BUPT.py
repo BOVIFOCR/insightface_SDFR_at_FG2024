@@ -75,11 +75,13 @@ class Loader_BUPT:
             data = torch.empty((len(pairs)*2, 3, image_size[0], image_size[1]))
             data_list.append(data)
 
-        issame_list = [bool(pairs[i]['pair_label']) for i in range(len(pairs))]
-        races_list = np.array([(pairs[i]['sample0_race'], pairs[i]['sample1_race']) for i in range(len(pairs))])
-        subj_list = np.array([(pairs[i]['sample0_subj'], pairs[i]['sample1_subj']) for i in range(len(pairs))])
+        issame_list = np.array([bool(pairs[i]['pair_label']) for i in range(len(pairs))])
+        races_list = np.array([sorted((pairs[i]['sample0_race'], pairs[i]['sample1_race'])) for i in range(len(pairs))])
+        subj_list = np.array([sorted((pairs[i]['sample0_subj'], pairs[i]['sample1_subj'])) for i in range(len(pairs))])
         # for i, (label, races, subjs) in enumerate(zip(issame_list, races_list, subj_list)):
-        #     print(f'pair:{i} - label: {label} - races: {races} - subjs: {subjs}')
+            # print(f'pair:{i} - label: {label} - races: {races} - subjs: {subjs}')
+            # if races[0] == races[1]:
+            #     print(f'pair:{i} - label: {label} - races: {races} - subjs: {subjs}')
         # print('len(issame_list):', len(issame_list))
         # print('len(races_list):', len(races_list))
         # print('len(subj_list):', len(subj_list))

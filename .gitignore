@@ -106,3 +106,6 @@ ENV/
 recognition/arcface_torch/trained_models/*
 recognition/arcface_torch/results_ijbc*
 recognition/model/*
+
+recognition/arcface_torch/wandb/*
+recognition/arcface_torch/work_dirs/*
