@@ -305,14 +305,35 @@ def get_races_combinations():
     return sorted(races_comb)
 
 
-def get_avg_metrics_races(metrics_races=[]):
-    avg_metrics_races = {}
-    races_combs = get_races_combinations()
+def get_avg_roc_metrics_races(metrics_races=[{}], races_combs=[]):
+    avg_roc_metrics = {}
     for i, race_comb in enumerate(races_combs):
-        avg_metrics_races[race_comb] = {}
-        avg_metrics_races[race_comb]['acc_mean'] = 0.0
-        for j, fold_idx in range(len(metrics_races)):
-            metrics_races[j]['acc_mean'][race_comb] += metrics_races[i]['acc'][race_comb]
+        accs = [metrics_races[fold_idx][race_comb]['acc'] for fold_idx in range(len(metrics_races))]
+        tprs = [metrics_races[fold_idx][race_comb]['tpr'] for fold_idx in range(len(metrics_races))]
+        fprs = [metrics_races[fold_idx][race_comb]['fpr'] for fold_idx in range(len(metrics_races))]
+
+        avg_roc_metrics[race_comb] = {}
+        avg_roc_metrics[race_comb]['acc_mean'] = np.mean(accs)
+        avg_roc_metrics[race_comb]['acc_std']  = np.std(accs)
+        avg_roc_metrics[race_comb]['tpr_mean'] = np.mean(tprs)
+        avg_roc_metrics[race_comb]['tpr_std']  = np.std(tprs)
+        avg_roc_metrics[race_comb]['fpr_mean'] = np.mean(fprs)
+        avg_roc_metrics[race_comb]['fpr_std']  = np.std(fprs)
+    return avg_roc_metrics
+
+
+def get_avg_val_metrics_races(metrics_races=[{}], races_combs=[]):
+    avg_val_metrics = {}
+    for i, race_comb in enumerate(races_combs):
+        vals = [metrics_races[fold_idx][race_comb]['val'] for fold_idx in range(len(metrics_races))]
+        fars = [metrics_races[fold_idx][race_comb]['far'] for fold_idx in range(len(metrics_races))]
+
+        avg_val_metrics[race_comb] = {}
+        avg_val_metrics[race_comb]['val_mean'] = np.mean(vals)
+        avg_val_metrics[race_comb]['val_std']  = np.std(vals)
+        avg_val_metrics[race_comb]['far_mean'] = np.mean(fars)
+        avg_val_metrics[race_comb]['far_std']  = np.std(fars)
+    return avg_val_metrics
 
 
 
@@ -323,7 +344,8 @@ def calculate_roc_analyze_races(thresholds,
                   races_list,
                   subj_list,
                   nrof_folds=10,
-                  pca=0):
+                  pca=0,
+                  races_combs=[]):
     assert (embeddings1.shape[0] == embeddings2.shape[0])
     assert (embeddings1.shape[1] == embeddings2.shape[1])
     nrof_pairs = min(len(actual_issame), embeddings1.shape[0])
@@ -359,23 +381,28 @@ def calculate_roc_analyze_races(thresholds,
         acc_train = np.zeros((nrof_thresholds))
         for threshold_idx, threshold in enumerate(thresholds):
             _, _, acc_train[threshold_idx] = calculate_accuracy_analyze_races(
-                threshold, dist[train_set], actual_issame[train_set], races_list=None, subj_list=None)
+                threshold, dist[train_set], actual_issame[train_set], races_list=None, subj_list=None, races_combs=None)
         best_threshold_index = np.argmax(acc_train)
         for threshold_idx, threshold in enumerate(thresholds):
             tprs[fold_idx, threshold_idx], fprs[fold_idx, threshold_idx], _ = calculate_accuracy_analyze_races(
-                threshold, dist[test_set], actual_issame[test_set], races_list=None, subj_list=None)
+                threshold, dist[test_set], actual_issame[test_set], races_list=None, subj_list=None, races_combs=None)
         _, _, accuracy[fold_idx], metrics_races[fold_idx] = calculate_accuracy_analyze_races(
             thresholds[best_threshold_index], dist[test_set],
-            actual_issame[test_set], races_list[test_set], subj_list[test_set])
+            actual_issame[test_set], races_list[test_set], subj_list[test_set], races_combs=races_combs)
 
-    avg_metrics_races = get_avg_metrics_races(metrics_races)
+    avg_roc_metrics = get_avg_roc_metrics_races(metrics_races, races_combs)
+    # for i, race_comb in enumerate(races_combs):
+    #     print(f'avg_roc_metrics[{race_comb}][\'acc_mean\']:', avg_roc_metrics[race_comb]['acc_mean'], '+-', avg_roc_metrics[race_comb]['acc_std'])
+    #     print(f'avg_roc_metrics[{race_comb}][\'tpr_mean\']:', avg_roc_metrics[race_comb]['tpr_mean'], '+-', avg_roc_metrics[race_comb]['tpr_std'])
+    #     print(f'avg_roc_metrics[{race_comb}][\'fpr_mean\']:', avg_roc_metrics[race_comb]['fpr_mean'], '+-', avg_roc_metrics[race_comb]['fpr_std'])
+    # sys.exit(0)
 
     tpr = np.mean(tprs, 0)
     fpr = np.mean(fprs, 0)
-    return tpr, fpr, accuracy
+    return tpr, fpr, accuracy, avg_roc_metrics
 
 
-def calculate_accuracy_analyze_races(threshold, dist, actual_issame, races_list, subj_list):
+def calculate_accuracy_analyze_races(threshold, dist, actual_issame, races_list, subj_list, races_combs):
     predict_issame = np.less(dist, threshold)
     tp = np.sum(np.logical_and(predict_issame, actual_issame))
     fp = np.sum(np.logical_and(predict_issame, np.logical_not(actual_issame)))
@@ -389,33 +416,25 @@ def calculate_accuracy_analyze_races(threshold, dist, actual_issame, races_list,
     # race analysis (African, Asian, Caucasian, Indian)
     if not races_list is None and not subj_list is None:
         metrics_races = {}
-        metrics_races['tp'] = {}
-        metrics_races['fp'] = {}
-        metrics_races['tn'] = {}
-        metrics_races['fn'] = {}
-        metrics_races['tpr'] = {}
-        metrics_races['fpr'] = {}
-        metrics_races['acc'] = {}
-        races_combs = get_races_combinations()
+        for race_comb in races_combs:
+            metrics_races[race_comb] = {}
+
         for i, race_comb in enumerate(races_combs):
             indices_race_comb = np.where(np.all(races_list == race_comb, axis=1))[0]
-            metrics_races['tp'][race_comb] = np.sum(np.logical_and(predict_issame[indices_race_comb], actual_issame[indices_race_comb]))
-            metrics_races['fp'][race_comb] = np.sum(np.logical_and(predict_issame[indices_race_comb], np.logical_not(actual_issame[indices_race_comb])))
-            metrics_races['tn'][race_comb] = np.sum(np.logical_and(np.logical_not(predict_issame[indices_race_comb]), np.logical_not(actual_issame[indices_race_comb])))
-            metrics_races['fn'][race_comb] = np.sum(np.logical_and(np.logical_not(predict_issame[indices_race_comb]), actual_issame[indices_race_comb]))
+            metrics_races[race_comb]['tp'] = np.sum(np.logical_and(predict_issame[indices_race_comb], actual_issame[indices_race_comb]))
+            metrics_races[race_comb]['fp'] = np.sum(np.logical_and(predict_issame[indices_race_comb], np.logical_not(actual_issame[indices_race_comb])))
+            metrics_races[race_comb]['tn'] = np.sum(np.logical_and(np.logical_not(predict_issame[indices_race_comb]), np.logical_not(actual_issame[indices_race_comb])))
+            metrics_races[race_comb]['fn'] = np.sum(np.logical_and(np.logical_not(predict_issame[indices_race_comb]), actual_issame[indices_race_comb]))
 
-            metrics_races['tpr'][race_comb] = 0 if (metrics_races['tp'][race_comb] + metrics_races['fn'][race_comb] == 0) else float(metrics_races['tp'][race_comb]) / float(metrics_races['tp'][race_comb] + metrics_races['fn'][race_comb])
-            metrics_races['fpr'][race_comb] = 0 if (metrics_races['fp'][race_comb] + metrics_races['tn'][race_comb] == 0) else float(metrics_races['fp'][race_comb]) / float(metrics_races['fp'][race_comb] + metrics_races['tn'][race_comb])
-            metrics_races['acc'][race_comb] = 0 if indices_race_comb.size == 0 else float(metrics_races['tp'][race_comb] + metrics_races['tn'][race_comb]) / indices_race_comb.size
-            print(f'i: {i} - acc: {acc} - metrics_races[\'acc\'][{race_comb}]: ' + str(metrics_races['acc'][race_comb]), end='')
-            print(f' | tpr: {tpr} - metrics_races[\'tpr\'][{race_comb}]: ' + str(metrics_races['tpr'][race_comb]), end='')
-            print(f' | fpr: {fpr} - metrics_races[\'fpr\'][{race_comb}]: ' + str(metrics_races['fpr'][race_comb]))
-        # sys.exit(0)
+            metrics_races[race_comb]['tpr'] = 0 if (metrics_races[race_comb]['tp'] + metrics_races[race_comb]['fn'] == 0) else float(metrics_races[race_comb]['tp']) / float(metrics_races[race_comb]['tp'] + metrics_races[race_comb]['fn'])
+            metrics_races[race_comb]['fpr'] = 0 if (metrics_races[race_comb]['fp'] + metrics_races[race_comb]['tn'] == 0) else float(metrics_races[race_comb]['fp']) / float(metrics_races[race_comb]['fp'] + metrics_races[race_comb]['tn'])
+            metrics_races[race_comb]['acc'] = 0 if indices_race_comb.size == 0 else float(metrics_races[race_comb]['tp'] + metrics_races[race_comb]['tn']) / indices_race_comb.size
 
     if races_list is None:
         return tpr, fpr, acc
     else:
         return tpr, fpr, acc, metrics_races
+
 
 
 def calculate_val_analyze_races(thresholds,
@@ -425,7 +444,8 @@ def calculate_val_analyze_races(thresholds,
                   far_target,
                   races_list,
                   subj_list,
-                  nrof_folds=10):
+                  nrof_folds=10,
+                  races_combs=[]):
     assert (embeddings1.shape[0] == embeddings2.shape[0])
     assert (embeddings1.shape[1] == embeddings2.shape[1])
     nrof_pairs = min(len(actual_issame), embeddings1.shape[0])
@@ -438,6 +458,7 @@ def calculate_val_analyze_races(thresholds,
     diff = np.subtract(embeddings1, embeddings2)
     dist = np.sum(np.square(diff), 1)
     indices = np.arange(nrof_pairs)
+    metrics_races = [None] * nrof_folds
 
     for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
 
@@ -445,63 +466,86 @@ def calculate_val_analyze_races(thresholds,
         far_train = np.zeros(nrof_thresholds)
         for threshold_idx, threshold in enumerate(thresholds):
             _, far_train[threshold_idx] = calculate_val_far_analyze_races(
-                threshold, dist[train_set], actual_issame[train_set], races_list, subj_list)
+                threshold, dist[train_set], actual_issame[train_set], races_list=None, subj_list=None, races_combs=None)
         if np.max(far_train) >= far_target:
             f = interpolate.interp1d(far_train, thresholds, kind='slinear')
             threshold = f(far_target)
         else:
             threshold = 0.0
 
-        val[fold_idx], far[fold_idx] = calculate_val_far_analyze_races(
-            threshold, dist[test_set], actual_issame[test_set], races_list, subj_list)
+        val[fold_idx], far[fold_idx], metrics_races[fold_idx] = calculate_val_far_analyze_races(
+            threshold, dist[test_set], actual_issame[test_set], races_list[test_set], subj_list[test_set], races_combs=races_combs)
+
+    avg_val_metrics = get_avg_val_metrics_races(metrics_races, races_combs)
 
     val_mean = np.mean(val)
     far_mean = np.mean(far)
     val_std = np.std(val)
-    return val_mean, val_std, far_mean
+    return val_mean, val_std, far_mean, avg_val_metrics
 
 
-def calculate_val_far_analyze_races(threshold, dist, actual_issame, races_list, subj_list):
+def calculate_val_far_analyze_races(threshold, dist, actual_issame, races_list, subj_list, races_combs):
     predict_issame = np.less(dist, threshold)
     true_accept = np.sum(np.logical_and(predict_issame, actual_issame))
-    false_accept = np.sum(
-        np.logical_and(predict_issame, np.logical_not(actual_issame)))
+    false_accept = np.sum(np.logical_and(predict_issame, np.logical_not(actual_issame)))
     n_same = np.sum(actual_issame)
     n_diff = np.sum(np.logical_not(actual_issame))
     # print(true_accept, false_accept)
     # print(n_same, n_diff)
     val = float(true_accept) / float(n_same)
     far = float(false_accept) / float(n_diff)
-    return val, far
+
+    # race analysis (African, Asian, Caucasian, Indian)
+    if not races_list is None and not subj_list is None:
+        metrics_races = {}
+        for race_comb in races_combs:
+            metrics_races[race_comb] = {}
+
+        for i, race_comb in enumerate(races_combs):
+            indices_race_comb = np.where(np.all(races_list == race_comb, axis=1))[0]
+            metrics_races[race_comb]['true_accept'] = np.sum(np.logical_and(predict_issame[indices_race_comb], actual_issame[indices_race_comb]))
+            metrics_races[race_comb]['false_accept'] = np.sum(np.logical_and(predict_issame[indices_race_comb], np.logical_not(actual_issame[indices_race_comb])))
+            metrics_races[race_comb]['n_same'] = np.sum(actual_issame[indices_race_comb])
+            metrics_races[race_comb]['n_diff'] = np.sum(np.logical_not(actual_issame[indices_race_comb]))
+
+            metrics_races[race_comb]['val'] = float(metrics_races[race_comb]['true_accept']) / float(metrics_races[race_comb]['n_same'])
+            metrics_races[race_comb]['far'] = float(metrics_races[race_comb]['false_accept']) / float(metrics_races[race_comb]['n_diff'])
+    
+    if races_list is None:
+        return val, far
+    else:
+        return val, far, metrics_races
 
 
-def evaluate_analyze_races(embeddings, actual_issame, races_list, subj_list, nrof_folds=10, pca=0):
+def evaluate_analyze_races(embeddings, actual_issame, races_list, subj_list, nrof_folds=10, pca=0, races_combs=[]):
     # Calculate evaluation metrics
     thresholds = np.arange(0, 4, 0.01)
     embeddings1 = embeddings[0::2]
     embeddings2 = embeddings[1::2]
-    tpr, fpr, accuracy = calculate_roc_analyze_races(thresholds,
-                                       embeddings1,
-                                       embeddings2,
-                                       np.asarray(actual_issame),
-                                       races_list,
-                                       subj_list,
-                                       nrof_folds=nrof_folds,
-                                       pca=pca)
+    tpr, fpr, accuracy, avg_roc_metrics = calculate_roc_analyze_races(thresholds,
+                                                embeddings1,
+                                                embeddings2,
+                                                np.asarray(actual_issame),
+                                                races_list,
+                                                subj_list,
+                                                nrof_folds=nrof_folds,
+                                                pca=pca,
+                                                races_combs=races_combs)
     thresholds = np.arange(0, 4, 0.001)
-    val, val_std, far = calculate_val_analyze_races(thresholds,
-                                      embeddings1,
-                                      embeddings2,
-                                      np.asarray(actual_issame),
-                                      1e-3,
-                                      races_list,
-                                      subj_list,
-                                      nrof_folds=nrof_folds)
-    return tpr, fpr, accuracy, val, val_std, far
+    val, val_std, far, avg_val_metrics = calculate_val_analyze_races(thresholds,
+                                                embeddings1,
+                                                embeddings2,
+                                                np.asarray(actual_issame),
+                                                1e-3,
+                                                races_list,
+                                                subj_list,
+                                                nrof_folds=nrof_folds,
+                                                races_combs=races_combs)
+    return tpr, fpr, accuracy, val, val_std, far, avg_roc_metrics, avg_val_metrics
 
 
 @torch.no_grad()
-def test_analyze_races(args, data_set, backbone, batch_size, nfolds=10):
+def test_analyze_races(args, data_set, backbone, batch_size, nfolds=10, races_combs=[]):
     data_list = data_set[0]
     issame_list = data_set[1]
     races_list = data_set[2]
@@ -509,12 +553,8 @@ def test_analyze_races(args, data_set, backbone, batch_size, nfolds=10):
 
     path_embeddings = os.path.join(args.data_dir, 'embeddings_list.pkl')
 
-    if not os.path.exists(path_embeddings):
+    if not os.path.exists(path_embeddings) or not args.use_saved_embedd:
         print('\nComputing embeddings...')
-        # data_list = data_set[0]
-        # issame_list = data_set[1]
-        # races_list = data_set[2]
-        # subj_list = data_set[3]
         embeddings_list = []
         time_consumed = 0.0
         for i in range(len(data_list)):
@@ -571,11 +611,11 @@ def test_analyze_races(args, data_set, backbone, batch_size, nfolds=10):
     embeddings = sklearn.preprocessing.normalize(embeddings)
     print(embeddings.shape)
 
-    print('\nDoing test evaluation...')
+    print('\nDoing races test evaluation...')
     # _, _, accuracy, val, val_std, far = evaluate(embeddings, issame_list, nrof_folds=nfolds)
-    _, _, accuracy, val, val_std, far = evaluate_analyze_races(embeddings, issame_list, races_list, subj_list, nrof_folds=nfolds)
+    _, _, accuracy, val, val_std, far, avg_roc_metrics, avg_val_metrics = evaluate_analyze_races(embeddings, issame_list, races_list, subj_list, nrof_folds=nfolds, races_combs=races_combs)
     acc2, std2 = np.mean(accuracy), np.std(accuracy)
-    return acc1, std1, acc2, std2, _xnorm, embeddings_list
+    return acc1, std1, acc2, std2, _xnorm, embeddings_list, val, val_std, far, avg_roc_metrics, avg_val_metrics
 
 
 def read_object_from_file(path):
@@ -663,12 +703,15 @@ if __name__ == '__main__':
     parser.add_argument('--max', default='', type=str, help='')
     parser.add_argument('--mode', default=0, type=int, help='')
     parser.add_argument('--nfolds', default=10, type=int, help='')
+    parser.add_argument('--use-saved-embedd', action='store_true')
     args = parser.parse_args()
+
+
     image_size = [112, 112]
     print('image_size', image_size)
 
-    # ctx = mx.gpu(args.gpu)   # original
-    ctx = mx.cpu()             # Bernardo
+    ctx = mx.gpu(args.gpu)   # original
+    # ctx = mx.cpu()         # Bernardo
 
     nets = []
     vec = args.model.split(',')
@@ -710,6 +753,7 @@ if __name__ == '__main__':
             if name.lower() == 'bupt':
                 path_unified_dataset = os.path.join(args.data_dir, 'dataset.pkl')
                 if not os.path.exists(path_unified_dataset):
+                    print(f'Loading individual images from folder \'{args.data_dir}\' ...')
                     data_set = Loader_BUPT().load_dataset(args.protocol, args.data_dir, image_size)
                     print(f'Saving dataset in file \'{path_unified_dataset}\' ...')
                     write_object_to_file(path_unified_dataset, data_set)
@@ -730,11 +774,20 @@ if __name__ == '__main__':
             results = []
             for model in nets:
                 if name.lower() == 'bupt':
-                    acc1, std1, acc2, std2, xnorm, embeddings_list = test_analyze_races(
-                        args, ver_list[i], model, args.batch_size, args.nfolds)
+                    races_combs = get_races_combinations()
+
+                    acc1, std1, acc2, std2, xnorm, embeddings_list, val, val_std, far, avg_roc_metrics, avg_val_metrics = test_analyze_races(
+                        args, ver_list[i], model, args.batch_size, args.nfolds, races_combs)
                     print('[%s]XNorm: %f' % (ver_name_list[i], xnorm))
-                    print('[%s]Accuracy: %1.5f+-%1.5f' % (ver_name_list[i], acc1, std1))
+                    # print('[%s]Accuracy: %1.5f+-%1.5f' % (ver_name_list[i], acc1, std1))
                     print('[%s]Accuracy-Flip: %1.5f+-%1.5f' % (ver_name_list[i], acc2, std2))
+                    print('[%s]TAR: %1.5f+-%1.5f    FAR: %1.5f' % (ver_name_list[i], val, val_std, far))
+
+                    for race_comb in races_combs:
+                        race_comb_str = str((race_comb[0][:5], race_comb[1][:5]))
+                        print('[%s]Acc %s: %1.5f+-%1.5f' % (ver_name_list[i], race_comb_str, avg_roc_metrics[race_comb]['acc_mean'], avg_roc_metrics[race_comb]['acc_std']), end='    ')
+                        print('[%s]TAR %s: %1.5f+-%1.5f' % (ver_name_list[i], race_comb_str, avg_val_metrics[race_comb]['val_mean'], avg_val_metrics[race_comb]['val_std']), end='    ')
+                        print('[%s]FAR %s: %1.5f+-%1.5f' % (ver_name_list[i], race_comb_str, avg_val_metrics[race_comb]['far_mean'], avg_val_metrics[race_comb]['far_std']))
                     results.append(acc2)
 
                 else:
@@ -745,7 +798,7 @@ if __name__ == '__main__':
                     print('[%s]Accuracy-Flip: %1.5f+-%1.5f' % (ver_name_list[i], acc2, std2))
                     results.append(acc2)
 
-            print('Max of [%s] is %1.5f' % (ver_name_list[i], np.max(results)))
+            # print('Max of [%s] is %1.5f' % (ver_name_list[i], np.max(results)))
     elif args.mode == 1:
         raise ValueError
     else:
