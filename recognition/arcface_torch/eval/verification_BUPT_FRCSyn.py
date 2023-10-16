@@ -797,9 +797,8 @@ if __name__ == '__main__':
 
     parser.add_argument('--network', default='r100', type=str, help='')
     parser.add_argument('--model',
-                        # default='../model/softmax,50',                                     # original
-                        # default='../../model/model-r100-ii/model,0',                       # Bernardo
-                        default='../trained_models/ms1mv3_arcface_r100_fp16/backbone.pth',   # Bernardo
+                        # default='../trained_models/ms1mv3_arcface_r100_fp16/backbone.pth',          # Bernardo
+                        default='../work_dirs/casia_frcsyn_r100/2023-10-14_09-51-11_GPU0/model.pt',   # (Trained only on CASIA-Webface)   Bernardo
                         help='path to load model.')
     parser.add_argument('--target',
                         # default='lfw,cfp_ff,cfp_fp,agedb_30',          # original
