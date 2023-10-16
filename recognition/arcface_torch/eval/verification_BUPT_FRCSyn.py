@@ -337,7 +337,7 @@ def get_avg_val_metrics_races(metrics_races=[{}], races_combs=[]):
 
 
 
-def calculate_roc_analyze_races(thresholds,
+def calculate_roc_analyze_races(args, thresholds,
                   embeddings1,
                   embeddings2,
                   actual_issame,
@@ -362,6 +362,15 @@ def calculate_roc_analyze_races(thresholds,
         diff = np.subtract(embeddings1, embeddings2)
         dist = np.sum(np.square(diff), 1)
 
+    # Bernardo
+    dist_fusion = None
+    if args.fusion_dist != '':
+        print(f'Loading dist for fusion: \'{args.fusion_dist}\'...')
+        dist_fusion = np.load(args.fusion_dist)
+        print(f'Fusing scores...\n')
+        assert dist.shape[0] == dist_fusion.shape[0]
+        dist = (dist + dist_fusion) / 2.0
+
     for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
         if pca > 0:
             print('doing pca on', fold_idx)
@@ -376,6 +385,11 @@ def calculate_roc_analyze_races(thresholds,
             embed2 = sklearn.preprocessing.normalize(embed2)
             diff = np.subtract(embed1, embed2)
             dist = np.sum(np.square(diff), 1)
+
+            if not dist_fusion is None:
+                print(f'Fusing scores (pca)...')
+                assert dist.shape[0] == dist_fusion.shape[0]
+                dist = (dist + dist_fusion) / 2.0
 
         # Find the best threshold for the fold
         acc_train = np.zeros((nrof_thresholds))
@@ -448,7 +462,7 @@ fnmrs, avg_fnmr_metrics = calculate_fnmr_fmr_analyze_races(thresholds,
                                                 nrof_folds=nrof_folds,
                                                 races_combs=races_combs)
 '''
-def calculate_fnmr_fmr_analyze_races(thresholds,
+def calculate_fnmr_fmr_analyze_races(args, thresholds,
                                     embeddings1,
                                     embeddings2,
                                     actual_issame,
@@ -472,6 +486,15 @@ def calculate_fnmr_fmr_analyze_races(thresholds,
     dist = np.sum(np.square(diff), 1)
     indices = np.arange(nrof_pairs)
     metrics_races = [None] * nrof_folds
+
+    # Bernardo
+    dist_fusion = None
+    if args.fusion_dist != '' and dist_fusion is None:
+        print(f'Loading dist for fusion: \'{args.fusion_dist}\'...')
+        dist_fusion = np.load(args.fusion_dist)
+        print(f'Fusing scores...\n')
+        assert dist.shape[0] == dist_fusion.shape[0]
+        dist = (dist + dist_fusion) / 2.0
 
     for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
         # Find the threshold that gives FMR = fmr_target
@@ -530,7 +553,7 @@ def get_fnmr_fmr_analyze_races(threshold, dist, actual_issame, races_list, subj_
 
 
 
-def calculate_val_analyze_races(thresholds,
+def calculate_val_analyze_races(args, thresholds,
                   embeddings1,
                   embeddings2,
                   actual_issame,
@@ -553,8 +576,16 @@ def calculate_val_analyze_races(thresholds,
     indices = np.arange(nrof_pairs)
     metrics_races = [None] * nrof_folds
 
-    for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
+    # Bernardo
+    dist_fusion = None
+    if args.fusion_dist != '' and dist_fusion is None:
+        print(f'Loading dist for fusion: \'{args.fusion_dist}\'...')
+        dist_fusion = np.load(args.fusion_dist)
+        print(f'Fusing scores...\n')
+        assert dist.shape[0] == dist_fusion.shape[0]
+        dist = (dist + dist_fusion) / 2.0
 
+    for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
         # Find the threshold that gives FAR = far_target
         far_train = np.zeros(nrof_thresholds)
         for threshold_idx, threshold in enumerate(thresholds):
@@ -610,13 +641,13 @@ def calculate_val_far_analyze_races(threshold, dist, actual_issame, races_list, 
         return val, far, metrics_races
 
 
-def evaluate_analyze_races(embeddings, actual_issame, races_list, subj_list, nrof_folds=10, pca=0, races_combs=[]):
+def evaluate_analyze_races(args, embeddings, actual_issame, races_list, subj_list, nrof_folds=10, pca=0, races_combs=[]):
     # Calculate evaluation metrics
     thresholds = np.arange(0, 4, 0.01)
     embeddings1 = embeddings[0::2]
     embeddings2 = embeddings[1::2]
     print('Doing ROC analysis...')
-    tpr, fpr, accuracy, avg_roc_metrics = calculate_roc_analyze_races(thresholds,
+    tpr, fpr, accuracy, avg_roc_metrics = calculate_roc_analyze_races(args, thresholds,
                                                 embeddings1,
                                                 embeddings2,
                                                 np.asarray(actual_issame),
@@ -628,7 +659,7 @@ def evaluate_analyze_races(embeddings, actual_issame, races_list, subj_list, nro
 
     thresholds = np.arange(0, 4, 0.001)
     print('Doing TAR@FAR analysis...')
-    val, val_std, far, avg_val_metrics = calculate_val_analyze_races(thresholds,
+    val, val_std, far, avg_val_metrics = calculate_val_analyze_races(args, thresholds,
                                                 embeddings1,
                                                 embeddings2,
                                                 np.asarray(actual_issame),
@@ -641,7 +672,7 @@ def evaluate_analyze_races(embeddings, actual_issame, races_list, subj_list, nro
     thresholds = np.arange(0, 4, 0.0001)
     fmr_targets = [1e-2, 1e-3, 1e-4]
     print('Doing FNMR@FMR analysis...')
-    fnmr_mean, fnmr_std, fmr_mean = calculate_fnmr_fmr_analyze_races(thresholds,
+    fnmr_mean, fnmr_std, fmr_mean = calculate_fnmr_fmr_analyze_races(args, thresholds,
                                                 embeddings1,
                                                 embeddings2,
                                                 np.asarray(actual_issame),
@@ -723,7 +754,7 @@ def test_analyze_races(args, data_set, backbone, batch_size, nfolds=10, races_co
 
     print('\nDoing races test evaluation...')
     # _, _, accuracy, val, val_std, far = evaluate(embeddings, issame_list, nrof_folds=nfolds)
-    _, _, accuracy, val, val_std, far, fnmr_mean, fnmr_std, fmr_mean, avg_roc_metrics, avg_val_metrics = evaluate_analyze_races(embeddings, issame_list, races_list, subj_list, nrof_folds=nfolds, races_combs=races_combs)
+    _, _, accuracy, val, val_std, far, fnmr_mean, fnmr_std, fmr_mean, avg_roc_metrics, avg_val_metrics = evaluate_analyze_races(args, embeddings, issame_list, races_list, subj_list, nrof_folds=nfolds, races_combs=races_combs)
     acc2, std2 = np.mean(accuracy), np.std(accuracy)
     return acc1, std1, acc2, std2, _xnorm, embeddings_list, val, val_std, far, fnmr_mean, fnmr_std, fmr_mean, avg_roc_metrics, avg_val_metrics
 
@@ -813,7 +844,11 @@ if __name__ == '__main__':
     parser.add_argument('--mode', default=0, type=int, help='')
     parser.add_argument('--nfolds', default=10, type=int, help='')
     parser.add_argument('--use-saved-embedd', action='store_true')
+
+    parser.add_argument('--fusion-dist', type=str, default='', help='')     # Bernardo
+
     args = parser.parse_args()
+
 
 
     image_size = [112, 112]
