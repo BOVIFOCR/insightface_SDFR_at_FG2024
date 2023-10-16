@@ -437,6 +437,105 @@ def calculate_accuracy_analyze_races(threshold, dist, actual_issame, races_list,
 
 
 
+'''
+fnmrs, avg_fnmr_metrics = calculate_fnmr_fmr_analyze_races(thresholds,
+                                                embeddings1,
+                                                embeddings2,
+                                                np.asarray(actual_issame),
+                                                [1e-0, 1e-1, 1e-2],
+                                                races_list,
+                                                subj_list,
+                                                nrof_folds=nrof_folds,
+                                                races_combs=races_combs)
+'''
+def calculate_fnmr_fmr_analyze_races(thresholds,
+                                    embeddings1,
+                                    embeddings2,
+                                    actual_issame,
+                                    fmr_target,
+                                    races_list,
+                                    subj_list,
+                                    nrof_folds=10,
+                                    races_combs=[]):
+    assert (embeddings1.shape[0] == embeddings2.shape[0])
+    assert (embeddings1.shape[1] == embeddings2.shape[1])
+    nrof_pairs = min(len(actual_issame), embeddings1.shape[0])
+    nrof_thresholds = len(thresholds)
+    k_fold = LFold(n_splits=nrof_folds, shuffle=False)
+
+    fnmr = np.zeros(nrof_folds)
+    fmr = np.zeros(nrof_folds)
+
+    diff = np.subtract(embeddings1, embeddings2)
+    dist = np.sum(np.square(diff), 1)
+    indices = np.arange(nrof_pairs)
+    metrics_races = [None] * nrof_folds
+
+    for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
+        # Find the threshold that gives FMR = fmr_target
+        fmr_train = np.zeros(nrof_thresholds)
+        for threshold_idx, threshold in enumerate(thresholds):
+            _, fmr_train[threshold_idx] = get_fnmr_fmr_analyze_races(
+                threshold, dist[train_set], actual_issame[train_set], races_list=None, subj_list=None, races_combs=None)
+
+        f = interpolate.interp1d(fmr_train, thresholds, kind='slinear')
+        threshold = f(fmr_target)
+        # if np.max(fmr_train) >= fmr_target:
+        #     f = interpolate.interp1d(fmr_train, thresholds, kind='slinear')
+        #     threshold = f(fmr_target)
+        # else:
+        #     threshold = 0.0
+
+        # fnmr[fold_idx], fmr[fold_idx], metrics_races[fold_idx] = get_fnmr_fmr_analyze_races(
+        #     threshold, dist[test_set], actual_issame[test_set], races_list[test_set], subj_list[test_set], races_combs=races_combs)
+        fnmr[fold_idx], fmr[fold_idx] = get_fnmr_fmr_analyze_races(
+            threshold, dist[test_set], actual_issame[test_set], races_list=None, subj_list=None, races_combs=None)
+
+    # avg_val_metrics = get_avg_val_metrics_races(metrics_races, races_combs)
+
+    fnmr_mean = np.mean(fnmr)
+    fnmr_std = np.std(fnmr)
+    fmr_mean = np.mean(fmr)
+    return fnmr_mean, fnmr_std, fmr_mean
+    # return fnmr_mean, fnmr_std, fmr_mean, avg_val_metrics
+
+
+def get_fnmr_fmr_analyze_races(threshold, dist, actual_issame, races_list, subj_list, races_combs):
+    predict_issame = np.less(dist, threshold)
+    tp = np.sum(np.logical_and(predict_issame, actual_issame))
+    fp = np.sum(np.logical_and(predict_issame, np.logical_not(actual_issame)))
+    tn = np.sum(np.logical_and(np.logical_not(predict_issame), np.logical_not(actual_issame)))
+    fn = np.sum(np.logical_and(np.logical_not(predict_issame), actual_issame))
+
+    fnmr = 0 if (fn + tp == 0) else float(fn) / float(fn + tp)
+    fmr = 0  if (fp + tn == 0) else float(fp) / float(fp + tn)
+
+    '''
+    # race analysis (African, Asian, Caucasian, Indian)
+    if not races_list is None and not subj_list is None:
+        metrics_races = {}
+        for race_comb in races_combs:
+            metrics_races[race_comb] = {}
+
+        for i, race_comb in enumerate(races_combs):
+            indices_race_comb = np.where(np.all(races_list == race_comb, axis=1))[0]
+            metrics_races[race_comb]['true_accept'] = np.sum(np.logical_and(predict_issame[indices_race_comb], actual_issame[indices_race_comb]))
+            metrics_races[race_comb]['false_accept'] = np.sum(np.logical_and(predict_issame[indices_race_comb], np.logical_not(actual_issame[indices_race_comb])))
+            metrics_races[race_comb]['n_same'] = np.sum(actual_issame[indices_race_comb])
+            metrics_races[race_comb]['n_diff'] = np.sum(np.logical_not(actual_issame[indices_race_comb]))
+
+            metrics_races[race_comb]['val'] = float(metrics_races[race_comb]['true_accept']) / float(metrics_races[race_comb]['n_same'])
+            metrics_races[race_comb]['far'] = float(metrics_races[race_comb]['false_accept']) / float(metrics_races[race_comb]['n_diff'])
+    '''
+
+    return fnmr, fmr
+    # if races_list is None:
+    #     return fnmr, fmr
+    # else:
+    #     return fnmr, fmr, metrics_races
+
+
+
 def calculate_val_analyze_races(thresholds,
                   embeddings1,
                   embeddings2,
@@ -531,6 +630,7 @@ def evaluate_analyze_races(embeddings, actual_issame, races_list, subj_list, nro
                                                 nrof_folds=nrof_folds,
                                                 pca=pca,
                                                 races_combs=races_combs)
+
     thresholds = np.arange(0, 4, 0.001)
     val, val_std, far, avg_val_metrics = calculate_val_analyze_races(thresholds,
                                                 embeddings1,
@@ -541,7 +641,20 @@ def evaluate_analyze_races(embeddings, actual_issame, races_list, subj_list, nro
                                                 subj_list,
                                                 nrof_folds=nrof_folds,
                                                 races_combs=races_combs)
-    return tpr, fpr, accuracy, val, val_std, far, avg_roc_metrics, avg_val_metrics
+
+    thresholds = np.arange(0, 4, 0.0001)
+    # fnmr, fmr, avg_fnmr_metrics = calculate_fnmr_fmr_analyze_races(thresholds,
+    fnmr_mean, fnmr_std, fmr_mean = calculate_fnmr_fmr_analyze_races(thresholds,
+                                                embeddings1,
+                                                embeddings2,
+                                                np.asarray(actual_issame),
+                                                1e-4,
+                                                races_list,
+                                                subj_list,
+                                                nrof_folds=nrof_folds,
+                                                races_combs=races_combs)
+
+    return tpr, fpr, accuracy, val, val_std, far, fnmr_mean, fnmr_std, fmr_mean, avg_roc_metrics, avg_val_metrics
 
 
 @torch.no_grad()
@@ -613,9 +726,9 @@ def test_analyze_races(args, data_set, backbone, batch_size, nfolds=10, races_co
 
     print('\nDoing races test evaluation...')
     # _, _, accuracy, val, val_std, far = evaluate(embeddings, issame_list, nrof_folds=nfolds)
-    _, _, accuracy, val, val_std, far, avg_roc_metrics, avg_val_metrics = evaluate_analyze_races(embeddings, issame_list, races_list, subj_list, nrof_folds=nfolds, races_combs=races_combs)
+    _, _, accuracy, val, val_std, far, fnmr_mean, fnmr_std, fmr_mean, avg_roc_metrics, avg_val_metrics = evaluate_analyze_races(embeddings, issame_list, races_list, subj_list, nrof_folds=nfolds, races_combs=races_combs)
     acc2, std2 = np.mean(accuracy), np.std(accuracy)
-    return acc1, std1, acc2, std2, _xnorm, embeddings_list, val, val_std, far, avg_roc_metrics, avg_val_metrics
+    return acc1, std1, acc2, std2, _xnorm, embeddings_list, val, val_std, far, fnmr_mean, fnmr_std, fmr_mean, avg_roc_metrics, avg_val_metrics
 
 
 def read_object_from_file(path):
@@ -776,12 +889,13 @@ if __name__ == '__main__':
                 if name.lower() == 'bupt':
                     races_combs = get_races_combinations()
 
-                    acc1, std1, acc2, std2, xnorm, embeddings_list, val, val_std, far, avg_roc_metrics, avg_val_metrics = test_analyze_races(
+                    acc1, std1, acc2, std2, xnorm, embeddings_list, val, val_std, far, fnmr_mean, fnmr_std, fmr_mean, avg_roc_metrics, avg_val_metrics = test_analyze_races(
                         args, ver_list[i], model, args.batch_size, args.nfolds, races_combs)
                     print('[%s]XNorm: %f' % (ver_name_list[i], xnorm))
                     # print('[%s]Accuracy: %1.5f+-%1.5f' % (ver_name_list[i], acc1, std1))
                     print('[%s]Accuracy-Flip: %1.5f+-%1.5f' % (ver_name_list[i], acc2, std2))
                     print('[%s]TAR: %1.5f+-%1.5f    FAR: %1.5f' % (ver_name_list[i], val, val_std, far))
+                    print('[%s]FNMR: %1.5f+-%1.5f   FMR: %1.5f' % (ver_name_list[i], fnmr_mean, fnmr_std, fmr_mean))
 
                     for race_comb in races_combs:
                         race_comb_str = str((race_comb[0][:5], race_comb[1][:5]))
