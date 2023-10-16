@@ -639,12 +639,13 @@ def evaluate_analyze_races(embeddings, actual_issame, races_list, subj_list, nro
                                                 races_combs=races_combs)
 
     thresholds = np.arange(0, 4, 0.0001)
+    fmr_targets = [1e-2, 1e-3, 1e-4]
     print('Doing FNMR@FMR analysis...')
     fnmr_mean, fnmr_std, fmr_mean = calculate_fnmr_fmr_analyze_races(thresholds,
                                                 embeddings1,
                                                 embeddings2,
                                                 np.asarray(actual_issame),
-                                                [1e-2, 1e-3, 1e-4],
+                                                fmr_targets,
                                                 races_list,
                                                 subj_list,
                                                 nrof_folds=nrof_folds,
