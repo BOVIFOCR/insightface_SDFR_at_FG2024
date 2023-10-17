@@ -298,6 +298,16 @@ def test(data_set, backbone, batch_size, nfolds=10):
 # RACES ANALYSIS (African, Asian, Caucasian, Indian)
 ###################################################
 
+def fuse_scores(score1, score2):
+    # score1 = (score1 - score1.min()) / (score1.max() - score1.min())
+    # score2 = (score2 - score2.min()) / (score2.max() - score2.min())
+    # score1 = score1 / score1.max()
+    # score2 = score2 / score2.max()
+
+    fused = (score1 + score2) / 2.0
+    return fused
+
+
 def get_races_combinations():
     races = ['African', 'Asian', 'Caucasian', 'Indian']
     races_comb = [(race, race) for race in races]
@@ -369,7 +379,7 @@ def calculate_roc_analyze_races(args, thresholds,
         dist_fusion = np.load(args.fusion_dist)
         print(f'Fusing scores...\n')
         assert dist.shape[0] == dist_fusion.shape[0]
-        dist = (dist + dist_fusion) / 2.0
+        dist = fuse_scores(dist, dist_fusion)
 
     for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
         if pca > 0:
@@ -389,7 +399,7 @@ def calculate_roc_analyze_races(args, thresholds,
             if not dist_fusion is None:
                 print(f'Fusing scores (pca)...')
                 assert dist.shape[0] == dist_fusion.shape[0]
-                dist = (dist + dist_fusion) / 2.0
+                dist = fuse_scores(dist, dist_fusion)
 
         # Find the best threshold for the fold
         acc_train = np.zeros((nrof_thresholds))
@@ -450,18 +460,6 @@ def calculate_accuracy_analyze_races(threshold, dist, actual_issame, races_list,
         return tpr, fpr, acc, metrics_races
 
 
-
-'''
-fnmrs, avg_fnmr_metrics = calculate_fnmr_fmr_analyze_races(thresholds,
-                                                embeddings1,
-                                                embeddings2,
-                                                np.asarray(actual_issame),
-                                                [1e-0, 1e-1, 1e-2],
-                                                races_list,
-                                                subj_list,
-                                                nrof_folds=nrof_folds,
-                                                races_combs=races_combs)
-'''
 def calculate_fnmr_fmr_analyze_races(args, thresholds,
                                     embeddings1,
                                     embeddings2,
@@ -494,7 +492,7 @@ def calculate_fnmr_fmr_analyze_races(args, thresholds,
         dist_fusion = np.load(args.fusion_dist)
         print(f'Fusing scores...\n')
         assert dist.shape[0] == dist_fusion.shape[0]
-        dist = (dist + dist_fusion) / 2.0
+        dist = fuse_scores(dist, dist_fusion)
 
     for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
         # Find the threshold that gives FMR = fmr_target
@@ -527,29 +525,7 @@ def get_fnmr_fmr_analyze_races(threshold, dist, actual_issame, races_list, subj_
     fnmr = 0 if (fn + tp == 0) else float(fn) / float(fn + tp)
     fmr = 0  if (fp + tn == 0) else float(fp) / float(fp + tn)
 
-    '''
-    # race analysis (African, Asian, Caucasian, Indian)
-    if not races_list is None and not subj_list is None:
-        metrics_races = {}
-        for race_comb in races_combs:
-            metrics_races[race_comb] = {}
-
-        for i, race_comb in enumerate(races_combs):
-            indices_race_comb = np.where(np.all(races_list == race_comb, axis=1))[0]
-            metrics_races[race_comb]['true_accept'] = np.sum(np.logical_and(predict_issame[indices_race_comb], actual_issame[indices_race_comb]))
-            metrics_races[race_comb]['false_accept'] = np.sum(np.logical_and(predict_issame[indices_race_comb], np.logical_not(actual_issame[indices_race_comb])))
-            metrics_races[race_comb]['n_same'] = np.sum(actual_issame[indices_race_comb])
-            metrics_races[race_comb]['n_diff'] = np.sum(np.logical_not(actual_issame[indices_race_comb]))
-
-            metrics_races[race_comb]['val'] = float(metrics_races[race_comb]['true_accept']) / float(metrics_races[race_comb]['n_same'])
-            metrics_races[race_comb]['far'] = float(metrics_races[race_comb]['false_accept']) / float(metrics_races[race_comb]['n_diff'])
-    '''
-
     return fnmr, fmr
-    # if races_list is None:
-    #     return fnmr, fmr
-    # else:
-    #     return fnmr, fmr, metrics_races
 
 
 
@@ -583,7 +559,7 @@ def calculate_val_analyze_races(args, thresholds,
         dist_fusion = np.load(args.fusion_dist)
         print(f'Fusing scores...\n')
         assert dist.shape[0] == dist_fusion.shape[0]
-        dist = (dist + dist_fusion) / 2.0
+        dist = fuse_scores(dist, dist_fusion)
 
     for fold_idx, (train_set, test_set) in enumerate(k_fold.split(indices)):
         # Find the threshold that gives FAR = far_target
