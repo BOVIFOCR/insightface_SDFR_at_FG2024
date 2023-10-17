@@ -298,6 +298,18 @@ def test(data_set, backbone, batch_size, nfolds=10):
 # RACES ANALYSIS (African, Asian, Caucasian, Indian)
 ###################################################
 
+def cosine_sim(embeddings1, embeddings2):
+    sims = np.zeros(embeddings1.shape[0])
+    for i in range(0,embeddings1.shape[0]):
+        sims[i] = np.dot(embeddings1[i],embeddings2[i])/(np.linalg.norm(embeddings1[i])*np.linalg.norm(embeddings2[i]))
+    return sims
+
+
+def cosine_dist(embeddings1, embeddings2):
+    distances = 1. - cosine_sim(embeddings1, embeddings2)
+    return distances
+
+
 def fuse_scores(score1, score2):
     # score1 = (score1 - score1.min()) / (score1.max() - score1.min())
     # score2 = (score2 - score2.min()) / (score2.max() - score2.min())
@@ -369,8 +381,10 @@ def calculate_roc_analyze_races(args, thresholds,
     metrics_races = [None] * nrof_folds
 
     if pca == 0:
-        diff = np.subtract(embeddings1, embeddings2)
-        dist = np.sum(np.square(diff), 1)
+        # diff = np.subtract(embeddings1, embeddings2)
+        # dist = np.sum(np.square(diff), 1)
+        dist = cosine_dist(embeddings1, embeddings2)
+        
 
     # Bernardo
     dist_fusion = None
@@ -393,8 +407,9 @@ def calculate_roc_analyze_races(args, thresholds,
             embed2 = pca_model.transform(embeddings2)
             embed1 = sklearn.preprocessing.normalize(embed1)
             embed2 = sklearn.preprocessing.normalize(embed2)
-            diff = np.subtract(embed1, embed2)
-            dist = np.sum(np.square(diff), 1)
+            # diff = np.subtract(embed1, embed2)
+            # dist = np.sum(np.square(diff), 1)
+            dist = cosine_dist(embed1, embed2)
 
             if not dist_fusion is None:
                 print(f'Fusing scores (pca)...')
@@ -480,8 +495,10 @@ def calculate_fnmr_fmr_analyze_races(args, thresholds,
         fnmr[fmr_target] = np.zeros(nrof_folds)
     fmr = np.zeros(nrof_folds)
 
-    diff = np.subtract(embeddings1, embeddings2)
-    dist = np.sum(np.square(diff), 1)
+    # diff = np.subtract(embeddings1, embeddings2)
+    # dist = np.sum(np.square(diff), 1)
+    dist = cosine_dist(embeddings1, embeddings2)
+
     indices = np.arange(nrof_pairs)
     metrics_races = [None] * nrof_folds
 
@@ -547,8 +564,10 @@ def calculate_val_analyze_races(args, thresholds,
     val = np.zeros(nrof_folds)
     far = np.zeros(nrof_folds)
 
-    diff = np.subtract(embeddings1, embeddings2)
-    dist = np.sum(np.square(diff), 1)
+    # diff = np.subtract(embeddings1, embeddings2)
+    # dist = np.sum(np.square(diff), 1)
+    dist = cosine_dist(embeddings1, embeddings2)
+
     indices = np.arange(nrof_pairs)
     metrics_races = [None] * nrof_folds
 
