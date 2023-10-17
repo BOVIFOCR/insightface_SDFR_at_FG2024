@@ -310,6 +310,25 @@ def cosine_dist(embeddings1, embeddings2):
     return distances
 
 
+def compute_score(embeddings1, embeddings2, score):
+    if score == 'eucl-dist':
+        diff = np.subtract(embeddings1, embeddings2)
+        dist = np.sum(np.square(diff), 1)
+    elif score == 'cos-dist':
+        dist = cosine_dist(embeddings1, embeddings2)
+    elif score == 'cos-sim':
+        dist = cosine_sim(embeddings1, embeddings2)
+    return dist
+
+
+def get_predict_true(dist, threshold, score):
+    if score == 'eucl-dist' or score == 'cos-dist':
+        predict_issame = np.less(dist, threshold)
+    elif score == 'cos-sim':
+        predict_issame = np.greater_equal(dist, threshold)
+    return predict_issame
+
+
 def fuse_scores(score1, score2):
     # score1 = (score1 - score1.min()) / (score1.max() - score1.min())
     # score2 = (score2 - score2.min()) / (score2.max() - score2.min())
@@ -383,7 +402,8 @@ def calculate_roc_analyze_races(args, thresholds,
     if pca == 0:
         # diff = np.subtract(embeddings1, embeddings2)
         # dist = np.sum(np.square(diff), 1)
-        dist = cosine_dist(embeddings1, embeddings2)
+        # dist = cosine_dist(embeddings1, embeddings2)
+        dist = compute_score(embeddings1, embeddings2, args.score)
         
 
     # Bernardo
@@ -409,7 +429,8 @@ def calculate_roc_analyze_races(args, thresholds,
             embed2 = sklearn.preprocessing.normalize(embed2)
             # diff = np.subtract(embed1, embed2)
             # dist = np.sum(np.square(diff), 1)
-            dist = cosine_dist(embed1, embed2)
+            # dist = cosine_dist(embed1, embed2)
+            dist = compute_score(embed1, embed1, args.score)
 
             if not dist_fusion is None:
                 print(f'Fusing scores (pca)...')
@@ -420,13 +441,13 @@ def calculate_roc_analyze_races(args, thresholds,
         acc_train = np.zeros((nrof_thresholds))
         for threshold_idx, threshold in enumerate(thresholds):
             _, _, acc_train[threshold_idx] = calculate_accuracy_analyze_races(
-                threshold, dist[train_set], actual_issame[train_set], races_list=None, subj_list=None, races_combs=None)
+                args, threshold, dist[train_set], actual_issame[train_set], races_list=None, subj_list=None, races_combs=None)
         best_threshold_index = np.argmax(acc_train)
         for threshold_idx, threshold in enumerate(thresholds):
             tprs[fold_idx, threshold_idx], fprs[fold_idx, threshold_idx], _ = calculate_accuracy_analyze_races(
-                threshold, dist[test_set], actual_issame[test_set], races_list=None, subj_list=None, races_combs=None)
+                args, threshold, dist[test_set], actual_issame[test_set], races_list=None, subj_list=None, races_combs=None)
         _, _, accuracy[fold_idx], metrics_races[fold_idx] = calculate_accuracy_analyze_races(
-            thresholds[best_threshold_index], dist[test_set],
+            args, thresholds[best_threshold_index], dist[test_set],
             actual_issame[test_set], races_list[test_set], subj_list[test_set], races_combs=races_combs)
 
     avg_roc_metrics = get_avg_roc_metrics_races(metrics_races, races_combs)
@@ -441,8 +462,10 @@ def calculate_roc_analyze_races(args, thresholds,
     return tpr, fpr, accuracy, avg_roc_metrics
 
 
-def calculate_accuracy_analyze_races(threshold, dist, actual_issame, races_list, subj_list, races_combs):
-    predict_issame = np.less(dist, threshold)
+def calculate_accuracy_analyze_races(args, threshold, dist, actual_issame, races_list, subj_list, races_combs):
+    # predict_issame = np.less(dist, threshold)
+    predict_issame = get_predict_true(dist, threshold, args.score)
+
     tp = np.sum(np.logical_and(predict_issame, actual_issame))
     fp = np.sum(np.logical_and(predict_issame, np.logical_not(actual_issame)))
     tn = np.sum(np.logical_and(np.logical_not(predict_issame), np.logical_not(actual_issame)))
@@ -497,7 +520,8 @@ def calculate_fnmr_fmr_analyze_races(args, thresholds,
 
     # diff = np.subtract(embeddings1, embeddings2)
     # dist = np.sum(np.square(diff), 1)
-    dist = cosine_dist(embeddings1, embeddings2)
+    # dist = cosine_dist(embeddings1, embeddings2)
+    dist = compute_score(embeddings1, embeddings2, args.score)
 
     indices = np.arange(nrof_pairs)
     metrics_races = [None] * nrof_folds
@@ -516,13 +540,13 @@ def calculate_fnmr_fmr_analyze_races(args, thresholds,
         fmr_train = np.zeros(nrof_thresholds)
         for threshold_idx, threshold in enumerate(thresholds):
             _, fmr_train[threshold_idx] = get_fnmr_fmr_analyze_races(
-                threshold, dist[train_set], actual_issame[train_set], races_list=None, subj_list=None, races_combs=None)
+                args, threshold, dist[train_set], actual_issame[train_set], races_list=None, subj_list=None, races_combs=None)
 
         f = interpolate.interp1d(fmr_train, thresholds, kind='slinear')
         for fmr_target in fmr_targets:
             threshold = f(fmr_target)
             fnmr[fmr_target][fold_idx], fmr[fold_idx] = get_fnmr_fmr_analyze_races(
-                threshold, dist[test_set], actual_issame[test_set], races_list=None, subj_list=None, races_combs=None)
+                args, threshold, dist[test_set], actual_issame[test_set], races_list=None, subj_list=None, races_combs=None)
 
     fnmr_mean, fnmr_std = {}, {}
     for fmr_target in fmr_targets:
@@ -532,8 +556,10 @@ def calculate_fnmr_fmr_analyze_races(args, thresholds,
     return fnmr_mean, fnmr_std, fmr_mean
 
 
-def get_fnmr_fmr_analyze_races(threshold, dist, actual_issame, races_list, subj_list, races_combs):
-    predict_issame = np.less(dist, threshold)
+def get_fnmr_fmr_analyze_races(args, threshold, dist, actual_issame, races_list, subj_list, races_combs):
+    # predict_issame = np.less(dist, threshold)
+    predict_issame = get_predict_true(dist, threshold, args.score)
+
     tp = np.sum(np.logical_and(predict_issame, actual_issame))
     fp = np.sum(np.logical_and(predict_issame, np.logical_not(actual_issame)))
     tn = np.sum(np.logical_and(np.logical_not(predict_issame), np.logical_not(actual_issame)))
@@ -566,7 +592,8 @@ def calculate_val_analyze_races(args, thresholds,
 
     # diff = np.subtract(embeddings1, embeddings2)
     # dist = np.sum(np.square(diff), 1)
-    dist = cosine_dist(embeddings1, embeddings2)
+    # dist = cosine_dist(embeddings1, embeddings2)
+    dist = compute_score(embeddings1, embeddings2, args.score)
 
     indices = np.arange(nrof_pairs)
     metrics_races = [None] * nrof_folds
@@ -585,7 +612,7 @@ def calculate_val_analyze_races(args, thresholds,
         far_train = np.zeros(nrof_thresholds)
         for threshold_idx, threshold in enumerate(thresholds):
             _, far_train[threshold_idx] = calculate_val_far_analyze_races(
-                threshold, dist[train_set], actual_issame[train_set], races_list=None, subj_list=None, races_combs=None)
+                args, threshold, dist[train_set], actual_issame[train_set], races_list=None, subj_list=None, races_combs=None)
         if np.max(far_train) >= far_target:
             f = interpolate.interp1d(far_train, thresholds, kind='slinear')
             threshold = f(far_target)
@@ -593,7 +620,7 @@ def calculate_val_analyze_races(args, thresholds,
             threshold = 0.0
 
         val[fold_idx], far[fold_idx], metrics_races[fold_idx] = calculate_val_far_analyze_races(
-            threshold, dist[test_set], actual_issame[test_set], races_list[test_set], subj_list[test_set], races_combs=races_combs)
+            args, threshold, dist[test_set], actual_issame[test_set], races_list[test_set], subj_list[test_set], races_combs=races_combs)
 
     avg_val_metrics = get_avg_val_metrics_races(metrics_races, races_combs)
 
@@ -603,8 +630,10 @@ def calculate_val_analyze_races(args, thresholds,
     return val_mean, val_std, far_mean, avg_val_metrics
 
 
-def calculate_val_far_analyze_races(threshold, dist, actual_issame, races_list, subj_list, races_combs):
-    predict_issame = np.less(dist, threshold)
+def calculate_val_far_analyze_races(args, threshold, dist, actual_issame, races_list, subj_list, races_combs):
+    # predict_issame = np.less(dist, threshold)
+    predict_issame = get_predict_true(dist, threshold, args.score)
+
     true_accept = np.sum(np.logical_and(predict_issame, actual_issame))
     false_accept = np.sum(np.logical_and(predict_issame, np.logical_not(actual_issame)))
     n_same = np.sum(actual_issame)
@@ -639,6 +668,8 @@ def calculate_val_far_analyze_races(threshold, dist, actual_issame, races_list, 
 def evaluate_analyze_races(args, embeddings, actual_issame, races_list, subj_list, nrof_folds=10, pca=0, races_combs=[]):
     # Calculate evaluation metrics
     thresholds = np.arange(0, 4, 0.01)
+    if args.score == 'cos-sim':
+        thresholds = np.flipud(thresholds)
     embeddings1 = embeddings[0::2]
     embeddings2 = embeddings[1::2]
     print('Doing ROC analysis...')
@@ -653,6 +684,8 @@ def evaluate_analyze_races(args, embeddings, actual_issame, races_list, subj_lis
                                                 races_combs=races_combs)
 
     thresholds = np.arange(0, 4, 0.001)
+    if args.score == 'cos-sim':
+        thresholds = np.flipud(thresholds)
     print('Doing TAR@FAR analysis...')
     val, val_std, far, avg_val_metrics = calculate_val_analyze_races(args, thresholds,
                                                 embeddings1,
@@ -665,6 +698,8 @@ def evaluate_analyze_races(args, embeddings, actual_issame, races_list, subj_lis
                                                 races_combs=races_combs)
 
     thresholds = np.arange(0, 4, 0.0001)
+    if args.score == 'cos-sim':
+        thresholds = np.flipud(thresholds)
     fmr_targets = [1e-2, 1e-3, 1e-4]
     print('Doing FNMR@FMR analysis...')
     fnmr_mean, fnmr_std, fmr_mean = calculate_fnmr_fmr_analyze_races(args, thresholds,
@@ -841,6 +876,7 @@ if __name__ == '__main__':
     parser.add_argument('--use-saved-embedd', action='store_true')
 
     parser.add_argument('--fusion-dist', type=str, default='', help='')     # Bernardo
+    parser.add_argument('--score', default='cos-sim', type=str, help='')   # 'cos-sim', 'cos-dist' or 'eucl-dist'
 
     args = parser.parse_args()
 
