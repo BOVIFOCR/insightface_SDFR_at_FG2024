@@ -665,6 +665,55 @@ def calculate_val_far_analyze_races(args, threshold, dist, actual_issame, races_
         return val, far, metrics_races
 
 
+def calculate_acc_at_threshold(args, one_threshold, thresholds,
+                  embeddings1,
+                  embeddings2,
+                  actual_issame,
+                  races_list,
+                  subj_list,
+                  races_combs=[]):
+    assert (embeddings1.shape[0] == embeddings2.shape[0])
+    assert (embeddings1.shape[1] == embeddings2.shape[1])
+    nrof_pairs = min(len(actual_issame), embeddings1.shape[0])
+    nrof_thresholds = len(thresholds)
+    # k_fold = LFold(n_splits=nrof_folds, shuffle=False)
+
+    tprs = np.zeros((nrof_thresholds))
+    fprs = np.zeros((nrof_thresholds))
+    accuracy = np.zeros((nrof_thresholds))
+    # indices = np.arange(nrof_pairs)
+    # metrics_races = [None] * nrof_folds
+
+    # diff = np.subtract(embeddings1, embeddings2)
+    # dist = np.sum(np.square(diff), 1)
+    # dist = cosine_dist(embeddings1, embeddings2)
+    dist = compute_score(embeddings1, embeddings2, args.score)
+
+    # Bernardo
+    dist_fusion = None
+    if args.fusion_dist != '':
+        print(f'Loading dist for fusion: \'{args.fusion_dist}\'...')
+        dist_fusion = np.load(args.fusion_dist)
+        print(f'Fusing scores...\n')
+        assert dist.shape[0] == dist_fusion.shape[0]
+        dist = fuse_scores(dist, dist_fusion)
+
+    # Find best threshold
+    for threshold_idx, threshold in enumerate(thresholds):
+        _, _, accuracy[threshold_idx] = calculate_accuracy_analyze_races(
+            args, threshold, dist, actual_issame, races_list=None, subj_list=None, races_combs=None)
+    best_threshold_index = np.argmax(accuracy)
+    best_threshold = thresholds[best_threshold_index]
+    _, _, best_accuracy = calculate_accuracy_analyze_races(
+                args, best_threshold, dist, actual_issame, races_list=None, subj_list=None, races_combs=None)
+
+    # compute metrics at one_threshold
+    _, _, accuracy_at_thresh = calculate_accuracy_analyze_races(
+                args, one_threshold, dist, actual_issame, races_list=None, subj_list=None, races_combs=None)
+
+    return best_accuracy, best_threshold, accuracy_at_thresh
+
+
 def evaluate_analyze_races(args, embeddings, actual_issame, races_list, subj_list, nrof_folds=10, pca=0, races_combs=[]):
     # Calculate evaluation metrics
     thresholds = np.arange(0, 4, 0.01)
@@ -711,8 +760,24 @@ def evaluate_analyze_races(args, embeddings, actual_issame, races_list, subj_lis
                                                 subj_list,
                                                 nrof_folds=nrof_folds,
                                                 races_combs=races_combs)
+    
+    best_acc, best_thresh, acc_at_thresh = None, None, None
+    if args.save_scores_at_thresh > 0:
+        thresholds = np.arange(0, 4, 0.01)
+        if args.score == 'cos-sim':
+            thresholds = np.flipud(thresholds)
+        one_threshold = args.save_scores_at_thresh
+        print('Doing ACC@THRESH analysis...')
+        best_acc, best_thresh, acc_at_thresh = calculate_acc_at_threshold(args, one_threshold, thresholds,
+                                                                            embeddings1,
+                                                                            embeddings2,
+                                                                            np.asarray(actual_issame),
+                                                                            races_list,
+                                                                            subj_list,
+                                                                            races_combs=races_combs)
 
-    return tpr, fpr, accuracy, val, val_std, far, fnmr_mean, fnmr_std, fmr_mean, avg_roc_metrics, avg_val_metrics
+    return tpr, fpr, accuracy, val, val_std, far, fnmr_mean, fnmr_std, fmr_mean, avg_roc_metrics, avg_val_metrics, \
+            best_acc, best_thresh, acc_at_thresh
 
 
 @torch.no_grad()
@@ -784,9 +849,11 @@ def test_analyze_races(args, data_set, backbone, batch_size, nfolds=10, races_co
 
     print('\nDoing races test evaluation...')
     # _, _, accuracy, val, val_std, far = evaluate(embeddings, issame_list, nrof_folds=nfolds)
-    _, _, accuracy, val, val_std, far, fnmr_mean, fnmr_std, fmr_mean, avg_roc_metrics, avg_val_metrics = evaluate_analyze_races(args, embeddings, issame_list, races_list, subj_list, nrof_folds=nfolds, races_combs=races_combs)
+    _, _, accuracy, val, val_std, far, fnmr_mean, fnmr_std, fmr_mean, avg_roc_metrics, avg_val_metrics, \
+        best_acc, best_thresh, acc_at_thresh = evaluate_analyze_races(args, embeddings, issame_list, races_list, subj_list, nrof_folds=nfolds, races_combs=races_combs)
     acc2, std2 = np.mean(accuracy), np.std(accuracy)
-    return acc1, std1, acc2, std2, _xnorm, embeddings_list, val, val_std, far, fnmr_mean, fnmr_std, fmr_mean, avg_roc_metrics, avg_val_metrics
+    return acc1, std1, acc2, std2, _xnorm, embeddings_list, val, val_std, far, fnmr_mean, fnmr_std, fmr_mean, avg_roc_metrics, avg_val_metrics, \
+            best_acc, best_thresh, acc_at_thresh
 
 
 def read_object_from_file(path):
@@ -875,11 +942,11 @@ if __name__ == '__main__':
     parser.add_argument('--nfolds', default=10, type=int, help='')
     parser.add_argument('--use-saved-embedd', action='store_true')
 
-    parser.add_argument('--fusion-dist', type=str, default='', help='')     # Bernardo
-    parser.add_argument('--score', default='cos-sim', type=str, help='')   # 'cos-sim', 'cos-dist' or 'eucl-dist'
+    parser.add_argument('--fusion-dist', type=str, default='', help='')                 # Bernardo
+    parser.add_argument('--score', default='cos-sim', type=str, help='')                # Bernardo ('cos-sim', 'cos-dist' or 'eucl-dist')
+    parser.add_argument('--save-scores-at-thresh', type=float, default=-1.0, help='')   # Bernardo (0.5)
 
     args = parser.parse_args()
-
 
 
     image_size = [112, 112]
@@ -951,8 +1018,8 @@ if __name__ == '__main__':
                 if name.lower() == 'bupt':
                     races_combs = get_races_combinations()
 
-                    acc1, std1, acc2, std2, xnorm, embeddings_list, val, val_std, far, fnmr_mean, fnmr_std, fmr_mean, avg_roc_metrics, avg_val_metrics = test_analyze_races(
-                        args, ver_list[i], model, args.batch_size, args.nfolds, races_combs)
+                    acc1, std1, acc2, std2, xnorm, embeddings_list, val, val_std, far, fnmr_mean, fnmr_std, fmr_mean, avg_roc_metrics, avg_val_metrics, \
+                         best_acc, best_thresh, acc_at_thresh = test_analyze_races(args, ver_list[i], model, args.batch_size, args.nfolds, races_combs)
                     print('[%s]XNorm: %f' % (ver_name_list[i], xnorm))
                     # print('[%s]Accuracy: %1.5f+-%1.5f' % (ver_name_list[i], acc1, std1))
                     print('[%s]Accuracy-Flip: %1.5f+-%1.5f' % (ver_name_list[i], acc2, std2))
@@ -967,6 +1034,10 @@ if __name__ == '__main__':
                         print('[%s]TAR %s: %1.5f+-%1.5f' % (ver_name_list[i], race_comb_str, avg_val_metrics[race_comb]['val_mean'], avg_val_metrics[race_comb]['val_std']), end='    ')
                         print('[%s]FAR %s: %1.5f+-%1.5f' % (ver_name_list[i], race_comb_str, avg_val_metrics[race_comb]['far_mean'], avg_val_metrics[race_comb]['far_std']))
                     results.append(acc2)
+
+                    if not acc_at_thresh is None:
+                        print('[%s]Best Acc: %1.5f    @best_thresh: %1.5f' % (ver_name_list[i], best_acc, best_thresh))
+                        print('[%s]Accuracy: %1.5f    @thresh: %1.5f' % (ver_name_list[i], acc_at_thresh, args.save_scores_at_thresh))
 
                 else:
                     acc1, std1, acc2, std2, xnorm, embeddings_list = test(
