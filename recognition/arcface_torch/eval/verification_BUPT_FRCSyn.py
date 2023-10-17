@@ -301,7 +301,7 @@ def test(data_set, backbone, batch_size, nfolds=10):
 def cosine_sim(embeddings1, embeddings2):
     sims = np.zeros(embeddings1.shape[0])
     for i in range(0,embeddings1.shape[0]):
-        sims[i] = np.dot(embeddings1[i],embeddings2[i])/(np.linalg.norm(embeddings1[i])*np.linalg.norm(embeddings2[i]))
+        sims[i] = float(np.maximum(np.dot(embeddings1[i],embeddings2[i])/(np.linalg.norm(embeddings1[i])*np.linalg.norm(embeddings2[i])), 0.0))
     return sims
 
 
@@ -665,7 +665,7 @@ def calculate_val_far_analyze_races(args, threshold, dist, actual_issame, races_
         return val, far, metrics_races
 
 
-def calculate_acc_at_threshold(args, one_threshold, thresholds,
+def calculate_best_acc(args, thresholds,
                   embeddings1,
                   embeddings2,
                   actual_issame,
@@ -674,12 +674,12 @@ def calculate_acc_at_threshold(args, one_threshold, thresholds,
                   races_combs=[]):
     assert (embeddings1.shape[0] == embeddings2.shape[0])
     assert (embeddings1.shape[1] == embeddings2.shape[1])
-    nrof_pairs = min(len(actual_issame), embeddings1.shape[0])
+    # nrof_pairs = min(len(actual_issame), embeddings1.shape[0])
     nrof_thresholds = len(thresholds)
     # k_fold = LFold(n_splits=nrof_folds, shuffle=False)
 
-    tprs = np.zeros((nrof_thresholds))
-    fprs = np.zeros((nrof_thresholds))
+    # tprs = np.zeros((nrof_thresholds))
+    # fprs = np.zeros((nrof_thresholds))
     accuracy = np.zeros((nrof_thresholds))
     # indices = np.arange(nrof_pairs)
     # metrics_races = [None] * nrof_folds
@@ -707,11 +707,59 @@ def calculate_acc_at_threshold(args, one_threshold, thresholds,
     _, _, best_accuracy = calculate_accuracy_analyze_races(
                 args, best_threshold, dist, actual_issame, races_list=None, subj_list=None, races_combs=None)
 
+    return best_accuracy, best_threshold
+
+
+def calculate_acc_at_threshold(args, one_threshold,
+                  embeddings1,
+                  embeddings2,
+                  actual_issame,
+                  races_list,
+                  subj_list,
+                  races_combs=[]):
+    assert (embeddings1.shape[0] == embeddings2.shape[0])
+    assert (embeddings1.shape[1] == embeddings2.shape[1])
+    # nrof_pairs = min(len(actual_issame), embeddings1.shape[0])
+    # nrof_thresholds = len(thresholds)
+    # k_fold = LFold(n_splits=nrof_folds, shuffle=False)
+
+    # tprs = np.zeros((nrof_thresholds))
+    # fprs = np.zeros((nrof_thresholds))
+    # accuracy = np.zeros((nrof_thresholds))
+    # indices = np.arange(nrof_pairs)
+    # metrics_races = [None] * nrof_folds
+
+    # diff = np.subtract(embeddings1, embeddings2)
+    # dist = np.sum(np.square(diff), 1)
+    # dist = cosine_dist(embeddings1, embeddings2)
+    dist = compute_score(embeddings1, embeddings2, args.score)
+    predict_issame = get_predict_true(dist, one_threshold, args.score)
+    predict_labels_at_thresh = predict_issame.astype(int)
+
+    # Bernardo
+    dist_fusion = None
+    if args.fusion_dist != '':
+        print(f'Loading dist for fusion: \'{args.fusion_dist}\'...')
+        dist_fusion = np.load(args.fusion_dist)
+        print(f'Fusing scores...\n')
+        assert dist.shape[0] == dist_fusion.shape[0]
+        dist = fuse_scores(dist, dist_fusion)
+
     # compute metrics at one_threshold
     _, _, accuracy_at_thresh = calculate_accuracy_analyze_races(
                 args, one_threshold, dist, actual_issame, races_list=None, subj_list=None, races_combs=None)
 
-    return best_accuracy, best_threshold, accuracy_at_thresh
+    return accuracy_at_thresh, dist, predict_labels_at_thresh
+
+
+
+def save_scores_pred_labels_frcsyn_format(file_path, float_array, int_array):
+    if len(float_array) != len(int_array):
+        raise ValueError("Both arrays must have the same length")
+    with open(file_path, 'w') as file:
+        for float_val, int_val in zip(float_array, int_array):
+            file.write(f"{float_val},{int_val}\n")
+
 
 
 def evaluate_analyze_races(args, embeddings, actual_issame, races_list, subj_list, nrof_folds=10, pca=0, races_combs=[]):
@@ -761,21 +809,37 @@ def evaluate_analyze_races(args, embeddings, actual_issame, races_list, subj_lis
                                                 nrof_folds=nrof_folds,
                                                 races_combs=races_combs)
     
-    best_acc, best_thresh, acc_at_thresh = None, None, None
+    thresholds = np.arange(0, 4, 0.01)
+    if args.score == 'cos-sim':
+        thresholds = np.flipud(thresholds)
+    print('Doing ACC@BEST-THRESH analysis...')
+    best_acc, best_thresh = calculate_best_acc(args, thresholds,
+                                                embeddings1,
+                                                embeddings2,
+                                                np.asarray(actual_issame),
+                                                races_list,
+                                                subj_list,
+                                                races_combs=races_combs)
+
+    acc_at_thresh = None
     if args.save_scores_at_thresh > 0:
-        thresholds = np.arange(0, 4, 0.01)
-        if args.score == 'cos-sim':
-            thresholds = np.flipud(thresholds)
         one_threshold = args.save_scores_at_thresh
         print('Doing ACC@THRESH analysis...')
-        best_acc, best_thresh, acc_at_thresh = calculate_acc_at_threshold(args, one_threshold, thresholds,
-                                                                            embeddings1,
-                                                                            embeddings2,
-                                                                            np.asarray(actual_issame),
-                                                                            races_list,
-                                                                            subj_list,
-                                                                            races_combs=races_combs)
+        acc_at_thresh, dist, pred_labels_at_thresh = calculate_acc_at_threshold(args, one_threshold,
+                                                        embeddings1,
+                                                        embeddings2,
+                                                        np.asarray(actual_issame),
+                                                        races_list,
+                                                        subj_list,
+                                                        races_combs=races_combs)
 
+        file_scores_labels = f'frcsyn_scores_labels_thresh={one_threshold}.txt'
+        path_file_scores_labels = os.path.join(os.path.dirname(args.model), file_scores_labels)
+        print(f'    Saving scores and pred labels at \'{path_file_scores_labels}\'...')
+        save_scores_pred_labels_frcsyn_format(path_file_scores_labels, dist, pred_labels_at_thresh)
+
+
+    print('--------------------')
     return tpr, fpr, accuracy, val, val_std, far, fnmr_mean, fnmr_std, fmr_mean, avg_roc_metrics, avg_val_metrics, \
             best_acc, best_thresh, acc_at_thresh
 
@@ -1035,8 +1099,8 @@ if __name__ == '__main__':
                         print('[%s]FAR %s: %1.5f+-%1.5f' % (ver_name_list[i], race_comb_str, avg_val_metrics[race_comb]['far_mean'], avg_val_metrics[race_comb]['far_std']))
                     results.append(acc2)
 
+                    print('[%s]Best Acc: %1.5f    @best_thresh: %1.5f' % (ver_name_list[i], best_acc, best_thresh))
                     if not acc_at_thresh is None:
-                        print('[%s]Best Acc: %1.5f    @best_thresh: %1.5f' % (ver_name_list[i], best_acc, best_thresh))
                         print('[%s]Accuracy: %1.5f    @thresh: %1.5f' % (ver_name_list[i], acc_at_thresh, args.save_scores_at_thresh))
 
                 else:
