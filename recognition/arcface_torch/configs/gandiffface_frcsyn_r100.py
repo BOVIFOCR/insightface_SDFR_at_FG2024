@@ -22,7 +22,9 @@ config.verbose = 2000
 config.dali = False
 
 # config.rec = "/train_tmp/faces_emore"
-config.rec = '/datasets2/frcsyn_wacv2024/datasets/synthetic/GANDiffFace/images_crops_112x112'
+config.rec = '/datasets2/frcsyn_wacv2024/datasets/synthetic/GANDiffFace/images_crops_112x112'          # duo
+# config.rec = '/nobackup/unico/frcsyn_wacv2024/datasets/synthetic/GANDiffFace/images_crops_112x112'   # diolkos
+# config.rec = '/home/bjgbiesseck/datasets/synthetic/GANDiffFace/images_crops_112x112'                 # daugman
 
 # config.num_classes = 85742
 config.num_classes = 9305
@@ -37,8 +39,18 @@ config.warmup_epoch = 0
 # config.val_targets = ['lfw', 'cfp_fp', "agedb_30"]
 # config.val_targets = ['']
 config.val_targets = ['bupt']
+
+# duo
 config.val_dataset_dir = ['/datasets2/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
 config.val_protocol_path = ['/datasets2/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
+
+# # diolkos
+# config.val_dataset_dir = ['/nobackup/unico/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
+# config.val_protocol_path = ['/nobackup/unico/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
+
+# # daugman
+# config.val_dataset_dir = ['/home/bjgbiesseck/datasets/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
+# config.val_protocol_path = ['/home/bjgbiesseck/datasets/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
 
 
 
