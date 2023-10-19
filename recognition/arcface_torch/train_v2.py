@@ -3,6 +3,7 @@ import logging
 import os
 from datetime import datetime
 
+import random
 import numpy as np
 import torch
 from backbones import get_model
@@ -32,7 +33,8 @@ except KeyError:
     world_size = 1
     distributed.init_process_group(
         backend="nccl",
-        init_method="tcp://127.0.0.1:12584",
+        # init_method="tcp://127.0.0.1:12584",
+        init_method="tcp://127.0.0.1:" + str(int(random.random() * 10000 + 12000)),    # Bernardo
         rank=rank,
         world_size=world_size,
     )
