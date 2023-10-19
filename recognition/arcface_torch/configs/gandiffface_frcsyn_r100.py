@@ -60,8 +60,8 @@ config.wandb_key = "d7664714c72bd594a957381812da450279f80f66"
 
 config.suffix_run_name = None
 
-config.using_wandb = False
-# config.using_wandb = True
+# config.using_wandb = False
+config.using_wandb = True
 
 # config.wandb_entity = "entity"
 config.wandb_entity = "bovifocr"
