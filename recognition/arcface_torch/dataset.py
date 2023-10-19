@@ -15,6 +15,8 @@ from torchvision.datasets import ImageFolder
 from utils.utils_distributed_sampler import DistributedSampler
 from utils.utils_distributed_sampler import get_dist_info, worker_init_fn
 
+from dataloaders.gandiffface_loader import GANDiffFace_loader
+
 
 def get_dataloader(
     root_dir,
@@ -41,11 +43,17 @@ def get_dataloader(
     # Image Folder
     else:
         transform = transforms.Compose([
-             transforms.RandomHorizontalFlip(),
-             transforms.ToTensor(),
-             transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-             ])
-        train_set = ImageFolder(root_dir, transform)
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+                ])
+
+        if 'GANDiffFace'.lower() in root_dir.lower():
+            train_set = GANDiffFace_loader(root_dir, transform)
+
+        else:
+            train_set = ImageFolder(root_dir, transform)
+
 
     # DALI
     if dali:
