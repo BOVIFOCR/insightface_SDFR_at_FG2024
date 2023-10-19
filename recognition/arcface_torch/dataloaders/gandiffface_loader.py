@@ -112,7 +112,7 @@ class GANDiffFace_loader(Dataset):
         if img_path.endswith('.jpg') or img_path.endswith('.jpeg') or img_path.endswith('.png'):
             rgb_data = self.load_img(img_path)
             rgb_data = self.normalize_img(rgb_data)
-        
+
         # return (rgb_data, subj_idx, race_idx, gender_idx)
         return (rgb_data, subj_idx)
 
