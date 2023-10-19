@@ -49,8 +49,8 @@ config.val_protocol_path = ['/datasets2/frcsyn_wacv2024/comparison_files/compari
 # config.val_protocol_path = ['/nobackup/unico/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
 
 # # daugman
-# config.val_dataset_dir = ['/home/bjgbiesseck/datasets/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
-# config.val_protocol_path = ['/home/bjgbiesseck/datasets/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
+# config.val_dataset_dir = ['/home/bjgbiesseck/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
+# config.val_protocol_path = ['/home/daugman_groups/unico/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
 
 
 
