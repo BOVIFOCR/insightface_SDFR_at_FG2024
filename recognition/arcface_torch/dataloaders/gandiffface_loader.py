@@ -28,6 +28,9 @@ class GANDiffFace_loader(Dataset):
         # else:
         #     self.imgidx = np.array(list(self.imgrec.keys))
 
+        if not os.path.exists(root_dir):
+            raise Exception(f'Dataset path does not exists: \'{root_dir}\'')
+
         self.root_dir = root_dir
         self.file_ext = '.png'
         self.path_files = ud.find_files(self.root_dir, self.file_ext)

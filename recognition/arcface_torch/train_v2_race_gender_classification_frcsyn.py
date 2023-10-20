@@ -10,7 +10,7 @@ from backbones import get_model
 from dataset import get_dataloader
 from losses import CombinedMarginLoss
 from lr_scheduler import PolyScheduler
-from partial_fc_v2 import PartialFC_V2
+from partial_fc_v2 import PartialFC_V2, PartialFC_V2_INVERSE
 from torch import distributed
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -120,9 +120,15 @@ def main(args):
             margin_loss, cfg.embedding_size, cfg.num_classes,
             cfg.sample_rate, cfg.fp16)
         module_partial_fc.train().cuda()
+
+        module_partial_fc_race = PartialFC_V2_INVERSE(
+            margin_loss, cfg.embedding_size, cfg.num_classes_races,
+            cfg.sample_rate, cfg.fp16)
+        module_partial_fc_race.train().cuda()
+
         # TODO the params of partial fc must be last in the params list
         opt = torch.optim.SGD(
-            params=[{"params": backbone.parameters()}, {"params": module_partial_fc.parameters()}],
+            params=[{"params": backbone.parameters()}, {"params": module_partial_fc.parameters()}, {"params": module_partial_fc_race.parameters()}],
             lr=cfg.lr, momentum=0.9, weight_decay=cfg.weight_decay)
 
     elif cfg.optimizer == "adamw":
@@ -156,6 +162,7 @@ def main(args):
         global_step = dict_checkpoint["global_step"]
         backbone.module.load_state_dict(dict_checkpoint["state_dict_backbone"])
         module_partial_fc.load_state_dict(dict_checkpoint["state_dict_softmax_fc"])
+        module_partial_fc_race.load_state_dict(dict_checkpoint["state_dict_softmax_fc_race"])
         opt.load_state_dict(dict_checkpoint["state_optimizer"])
         lr_scheduler.load_state_dict(dict_checkpoint["state_lr_scheduler"])
         del dict_checkpoint
@@ -177,20 +184,26 @@ def main(args):
         writer=summary_writer
     )
 
-    loss_am = AverageMeter()
+    loss_id_am = AverageMeter()
+    total_loss_am = AverageMeter()
     amp = torch.cuda.amp.grad_scaler.GradScaler(growth_interval=100)
 
     for epoch in range(start_epoch, cfg.num_epoch):
 
         if isinstance(train_loader, DataLoader):
             train_loader.sampler.set_epoch(epoch)
-        for _, (img, local_labels) in enumerate(train_loader):
+        # for _, (img, local_labels) in enumerate(train_loader):
+        for _, (img, local_labels, race_label, gender_label) in enumerate(train_loader):
             global_step += 1
             local_embeddings = backbone(img)
-            loss: torch.Tensor = module_partial_fc(local_embeddings, local_labels)
+            loss_id: torch.Tensor = module_partial_fc(local_embeddings, local_labels)
+            loss_race: torch.Tensor = module_partial_fc_race(local_embeddings, race_label)
+            # total_loss: torch.Tensor = loss_id + loss_race
+            total_loss: torch.Tensor = loss_id + (-loss_race)
 
             if cfg.fp16:
-                amp.scale(loss).backward()
+                # amp.scale(loss_id).backward()    # original
+                amp.scale(total_loss).backward()   # Bernardo
                 if global_step % cfg.gradient_acc == 0:
                     amp.unscale_(opt)
                     torch.nn.utils.clip_grad_norm_(backbone.parameters(), 5)
@@ -198,7 +211,8 @@ def main(args):
                     amp.update()
                     opt.zero_grad()
             else:
-                loss.backward()
+                # loss_id.backward()    # original
+                total_loss.backward()   # Bernardo
                 if global_step % cfg.gradient_acc == 0:
                     torch.nn.utils.clip_grad_norm_(backbone.parameters(), 5)
                     opt.step()
@@ -208,14 +222,18 @@ def main(args):
             with torch.no_grad():
                 if wandb_logger:
                     wandb_logger.log({
-                        'Loss/Step Loss': loss.item(),
-                        'Loss/Train Loss': loss_am.avg,
+                        'Loss/Step LossID': loss_id.item(),
+                        'Loss/Step LossRACE': loss_race.item(),
+                        'Loss/Step LossTOTAL': total_loss.item(),
+                        # 'Loss/Train Loss': loss_id_am.avg,
                         'Process/Step': global_step,
                         'Process/Epoch': epoch
                     })
                     
-                loss_am.update(loss.item(), 1)
-                callback_logging(global_step, loss_am, epoch, cfg.fp16, lr_scheduler.get_last_lr()[0], amp)
+                # loss_id_am.update(loss_id.item(), 1)    # original
+                # callback_logging(global_step, loss_id_am, epoch, cfg.fp16, lr_scheduler.get_last_lr()[0], amp)
+                total_loss_am.update(total_loss.item(), 1)   # Bernardo
+                callback_logging(global_step, total_loss_am, epoch, cfg.fp16, lr_scheduler.get_last_lr()[0], amp)
 
                 if global_step % cfg.verbose == 0 and global_step > 0:
                     callback_verification(global_step, backbone)
@@ -226,6 +244,7 @@ def main(args):
                 "global_step": global_step,
                 "state_dict_backbone": backbone.module.state_dict(),
                 "state_dict_softmax_fc": module_partial_fc.state_dict(),
+                "state_dict_softmax_fc_race": module_partial_fc_race.state_dict(),
                 "state_optimizer": opt.state_dict(),
                 "state_lr_scheduler": lr_scheduler.state_dict()
             }
