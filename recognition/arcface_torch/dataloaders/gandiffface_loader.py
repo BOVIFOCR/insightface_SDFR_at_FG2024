@@ -114,6 +114,7 @@ class GANDiffFace_loader(Dataset):
             rgb_data = self.normalize_img(rgb_data)
 
         # return (rgb_data, subj_idx, race_idx, gender_idx)
+        # return (rgb_data, race_idx)
         return (rgb_data, subj_idx)
 
 
