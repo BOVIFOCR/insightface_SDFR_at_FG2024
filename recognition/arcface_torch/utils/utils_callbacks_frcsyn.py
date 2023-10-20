@@ -67,9 +67,7 @@ class CallBackVerification(object):
 
     def init_dataset(self, val_targets, data_dir, image_size, cfg):
         for i, name in enumerate(val_targets):
-            path = os.path.join(data_dir, name + ".bin")
-            # if os.path.exists(path):
-
+            
             if name.lower() == 'bupt':
                 path_unified_dataset = os.path.join(cfg.val_dataset_dir[i], 'dataset.pkl')
                 if not os.path.exists(path_unified_dataset):
@@ -83,9 +81,11 @@ class CallBackVerification(object):
                 self.ver_name_list.append(name)
 
             else:
-                data_set = verification.load_bin(path, image_size)
-                self.ver_list.append(data_set)
-                self.ver_name_list.append(name)
+                path = os.path.join(data_dir, name + ".bin")
+                if os.path.exists(path):
+                    data_set = verification.load_bin(path, image_size)
+                    self.ver_list.append(data_set)
+                    self.ver_name_list.append(name)
 
     def __call__(self, num_update, backbone: torch.nn.Module):
         if self.rank is 0 and num_update > 0:
