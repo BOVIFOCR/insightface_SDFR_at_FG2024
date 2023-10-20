@@ -16,6 +16,7 @@ from utils.utils_distributed_sampler import DistributedSampler
 from utils.utils_distributed_sampler import get_dist_info, worker_init_fn
 
 from dataloaders.gandiffface_loader import GANDiffFace_loader
+from dataloaders.dcface_loader import DCFace_loader
 
 
 def get_dataloader(
@@ -50,9 +51,13 @@ def get_dataloader(
 
         if 'GANDiffFace'.lower() in root_dir.lower():
             train_set = GANDiffFace_loader(root_dir, transform)
+        
+        elif 'DCFace'.lower() in root_dir.lower():
+            train_set = DCFace_loader(root_dir, transform)
 
         else:
-            train_set = ImageFolder(root_dir, transform)
+            # train_set = ImageFolder(root_dir, transform)        # original
+            raise Exception('Dataset could not be identified!')   # Bernardo
 
 
     # DALI

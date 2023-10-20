@@ -184,7 +184,13 @@ def main(args):
 
         if isinstance(train_loader, DataLoader):
             train_loader.sampler.set_epoch(epoch)
-        for _, (img, local_labels) in enumerate(train_loader):
+        # for _, (img, local_labels) in enumerate(train_loader):
+        for _, train_batch in enumerate(train_loader):
+            if len(train_batch) == 2:
+                img, local_labels = train_batch
+            elif len(train_batch) == 4:
+                img, local_labels, race_label, gender_label = train_batch
+
             global_step += 1
             local_embeddings = backbone(img)
             loss: torch.Tensor = module_partial_fc(local_embeddings, local_labels)

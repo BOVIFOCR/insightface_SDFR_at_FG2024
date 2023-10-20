@@ -11,9 +11,9 @@ except ImportError as e:
     import utils_dataloaders as ud
 
 
-class GANDiffFace_loader(Dataset):
+class DCFace_loader(Dataset):
     def __init__(self, root_dir, transform=None):
-        super(GANDiffFace_loader, self).__init__()
+        super(DCFace_loader, self).__init__()
         # self.transform = transform
         # self.root_dir = root_dir
         # self.local_rank = local_rank
@@ -29,7 +29,7 @@ class GANDiffFace_loader(Dataset):
         #     self.imgidx = np.array(list(self.imgrec.keys))
 
         self.root_dir = root_dir
-        self.file_ext = '.png'
+        self.file_ext = '.jpg'
         self.path_files = ud.find_files(self.root_dir, self.file_ext)
         self.samples_list, self.subjs_list, self.races_list, self.genders_list = self.make_samples_list_with_labels(self.path_files)
         # print('len(self.samples_list):', len(self.samples_list))
@@ -45,35 +45,34 @@ class GANDiffFace_loader(Dataset):
 
     def get_subj_race_gender_dicts(self, path_files):
         subjs_list   = [None] * len(path_files)
-        races_list   = [None] * len(path_files)
         genders_list = [None] * len(path_files)
-        for i, path_file in enumerate(path_files):                    # '/datasets2/frcsyn_wacv2024/datasets/synthetic/GANDiffFace/images_crops_112x112/White_Male/7381461/49.png'
-            subjs_list[i] = path_file.split('/')[-2]                  # '7381461'
-            races_list[i] = path_file.split('/')[-3].split('_')[0]    # 'White'
-            genders_list[i] = path_file.split('/')[-3].split('_')[1]  # 'Male'
+        races_list   = [None] * len(path_files)
+        for i, path_file in enumerate(path_files):       # '/datasets2/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized/Asian/Female/34/0.jpg'
+            subjs_list[i] = path_file.split('/')[-2]     # '34'
+            genders_list[i] = path_file.split('/')[-3]   # 'Female'
+            races_list[i] = path_file.split('/')[-4]     # 'Asian'
         subjs_list = sorted(list(set(subjs_list)))
-        races_list = sorted(list(set(races_list)))
         genders_list = sorted(list(set(genders_list)))
-
+        races_list = sorted(list(set(races_list)))
+        
         subjs_dict = {subj:i for i,subj in enumerate(subjs_list)}
-        races_dict = {race:i for i,race in enumerate(races_list)}
         genders_dict = {gender:i for i,gender in enumerate(genders_list)}
-
-        return subjs_dict, races_dict, genders_dict
+        races_dict = {race:i for i,race in enumerate(races_list)}
+        
+        return subjs_dict, races_dict, genders_dict 
 
 
     def make_samples_list_with_labels(self, path_files):
         subjs_dict, races_dict, genders_dict = self.get_subj_race_gender_dicts(path_files)
         samples_list = [None] * len(path_files)
-        for i, path_file in enumerate(path_files):                    # '/datasets2/frcsyn_wacv2024/datasets/synthetic/GANDiffFace/images_crops_112x112/White_Male/7381461/49.png'
-            subj = path_file.split('/')[-2]                           # '7381461'
-            race = path_file.split('/')[-3].split('_')[0]             # 'White'
-            gender = path_file.split('/')[-3].split('_')[1]           # 'Male'
-
+        for i, path_file in enumerate(path_files):       # '/datasets2/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized/Asian/Female/34/0.jpg'
+            subj = path_file.split('/')[-2]              # '34'
+            gender = path_file.split('/')[-3]            # 'Female'
+            race = path_file.split('/')[-4]              # 'Asian'
+            
             subj_idx = subjs_dict[subj]
-            race_idx = races_dict[race]
             gender_idx = genders_dict[gender]
-            # samples_list[i] = (path_file, subj, race, gender)
+            race_idx = races_dict[race]
             samples_list[i] = (path_file, subj_idx, race_idx, gender_idx)
 
         return samples_list, subjs_dict, races_dict, genders_dict
@@ -124,6 +123,6 @@ class GANDiffFace_loader(Dataset):
 
 
 if __name__ == '__main__':
-    root_dir = '/datasets2/frcsyn_wacv2024/datasets/synthetic/GANDiffFace/images_crops_112x112'
+    root_dir = '/nobackup/unico/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized'
     transform=None
-    train_set = GANDiffFace_loader(root_dir, transform)
+    train_set = DCFace_loader(root_dir, transform)
