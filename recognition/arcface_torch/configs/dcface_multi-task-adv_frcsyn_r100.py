@@ -14,8 +14,8 @@ config.sample_rate = 1.0
 config.fp16 = True
 config.momentum = 0.9
 config.weight_decay = 5e-4
-config.batch_size = 128
-# config.batch_size = 64
+# config.batch_size = 128
+config.batch_size = 64
 config.lr = 0.1
 config.verbose = 2000
 # config.verbose = 10
@@ -24,10 +24,12 @@ config.dali = False
 # config.rec = "/train_tmp/faces_emore"
 # config.rec = '/datasets2/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized'      # duo
 config.rec = '/nobackup/unico/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized'   # diolkos
-# config.rec = ''    # daugman
+# config.rec = ''      # daugman
 
 # config.num_classes = 85742
 config.num_classes = 10000
+
+config.num_classes_races = 5
 
 # config.num_image = 5822653
 config.num_image = 550000
@@ -44,7 +46,7 @@ config.val_targets = ['bupt']
 # config.val_dataset_dir = ['/datasets2/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
 # config.val_protocol_path = ['/datasets2/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
 
-# # diolkos
+# diolkos
 config.val_dataset_dir = ['/nobackup/unico/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
 config.val_protocol_path = ['/nobackup/unico/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
 
@@ -66,7 +68,7 @@ config.using_wandb = True
 # config.wandb_entity = "entity"
 config.wandb_entity = "bovifocr"
 
-config.wandb_project = "R100_DCFace_10000classes_whole_dataset"
+config.wandb_project = "R100_DCFace_Multi-task-Adv_10000classes_whole_dataset"
 config.wandb_log_all = True
 
 # config.save_artifacts = False

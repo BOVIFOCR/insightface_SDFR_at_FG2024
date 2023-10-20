@@ -215,7 +215,7 @@ def main(args):
                 if wandb_logger:
                     wandb_logger.log({
                         'Loss/Step Loss': loss.item(),
-                        'Loss/Train Loss': loss_am.avg,
+                        # 'Loss/Train Loss': loss_am.avg,
                         'Process/Step': global_step,
                         'Process/Epoch': epoch
                     })
