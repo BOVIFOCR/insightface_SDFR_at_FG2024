@@ -28,6 +28,9 @@ class GANDiffFace_loader(Dataset):
         # else:
         #     self.imgidx = np.array(list(self.imgrec.keys))
 
+        if not os.path.exists(root_dir):
+            raise Exception(f'Dataset path does not exists: \'{root_dir}\'')
+
         self.root_dir = root_dir
         self.file_ext = '.png'
         self.path_files = ud.find_files(self.root_dir, self.file_ext)
@@ -113,9 +116,9 @@ class GANDiffFace_loader(Dataset):
             rgb_data = self.load_img(img_path)
             rgb_data = self.normalize_img(rgb_data)
 
-        # return (rgb_data, subj_idx, race_idx, gender_idx)
+        return (rgb_data, subj_idx, race_idx, gender_idx)
         # return (rgb_data, race_idx)
-        return (rgb_data, subj_idx)
+        # return (rgb_data, subj_idx)
 
 
     def __len__(self):
