@@ -12,7 +12,7 @@ except ImportError as e:
 
 
 class DCFace_loader(Dataset):
-    def __init__(self, root_dir, transform=None):
+    def __init__(self, root_dir, transform=None, other_dataset=None):
         super(DCFace_loader, self).__init__()
         # self.transform = transform
         # self.root_dir = root_dir
@@ -39,18 +39,29 @@ class DCFace_loader(Dataset):
         # print('self.races_list:', self.races_list)
         # print('self.genders_list:', self.genders_list)
         # sys.exit(0)
-
         assert len(self.path_files) == len(self.samples_list), 'Error, len(self.path_files) must be equals to len(self.samples_list)'
+
+        if not other_dataset is None:
+            self.path_files += other_dataset.path_files
+            self.samples_list += other_dataset.samples_list
+            self.subjs_list = ud.merge_dicts(self.subjs_list, other_dataset.subjs_list)
+            self.races_list = ud.merge_dicts(self.races_list, other_dataset.races_list)
+            self.genders_list = ud.merge_dicts(self.genders_list, other_dataset.genders_list)
+        # print('len(self.samples_list):', len(self.samples_list))
+        # print('len(self.subjs_list):', len(self.subjs_list))
+        # print('len(self.races_list):', len(self.races_list))
+        # print('len(self.genders_list):', len(self.genders_list))
+        # sys.exit(0)
 
 
     def get_subj_race_gender_dicts(self, path_files):
         subjs_list   = [None] * len(path_files)
         genders_list = [None] * len(path_files)
         races_list   = [None] * len(path_files)
-        for i, path_file in enumerate(path_files):       # '/datasets2/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized/Asian/Female/34/0.jpg'
-            subjs_list[i] = path_file.split('/')[-2]     # '34'
-            genders_list[i] = path_file.split('/')[-3]   # 'Female'
-            races_list[i] = path_file.split('/')[-4]     # 'Asian'
+        for i, path_file in enumerate(path_files):                  # '/datasets2/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized/Asian/Female/34/0.jpg'
+            subjs_list[i] = 'dcface_' + path_file.split('/')[-2]    # 'dcface_34'
+            genders_list[i] = path_file.split('/')[-3]              # 'Female'
+            races_list[i] = path_file.split('/')[-4]                # 'Asian'
         subjs_list = sorted(list(set(subjs_list)))
         genders_list = sorted(list(set(genders_list)))
         races_list = sorted(list(set(races_list)))
@@ -66,7 +77,7 @@ class DCFace_loader(Dataset):
         subjs_dict, races_dict, genders_dict = self.get_subj_race_gender_dicts(path_files)
         samples_list = [None] * len(path_files)
         for i, path_file in enumerate(path_files):       # '/datasets2/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized/Asian/Female/34/0.jpg'
-            subj = path_file.split('/')[-2]              # '34'
+            subj = 'dcface_' + path_file.split('/')[-2]  # 'dcface_34'
             gender = path_file.split('/')[-3]            # 'Female'
             race = path_file.split('/')[-4]              # 'Asian'
             
@@ -125,4 +136,4 @@ class DCFace_loader(Dataset):
 if __name__ == '__main__':
     root_dir = '/nobackup/unico/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized'
     transform=None
-    train_set = DCFace_loader(root_dir, transform)
+    train_set = DCFace_loader(root_dir, transform, None)
