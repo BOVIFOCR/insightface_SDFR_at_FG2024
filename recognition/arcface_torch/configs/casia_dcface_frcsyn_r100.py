@@ -38,7 +38,11 @@ config.warmup_epoch = 0
 
 # config.val_targets = ['lfw', 'cfp_fp', "agedb_30"]
 # config.val_targets = ['']
-config.val_targets = ['bupt']
+config.val_targets = ['/datasets2/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/faces_webface_112x112/lfw.bin', \
+                      '/datasets2/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/faces_webface_112x112/cfp_fp.bin', \
+                      '/datasets2/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/faces_webface_112x112/agedb_30.bin', \
+                      'bupt']
+# config.val_targets = ['bupt']
 config.val_dataset_dir = ['/datasets2/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
 config.val_protocol_path = ['/datasets2/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
 
