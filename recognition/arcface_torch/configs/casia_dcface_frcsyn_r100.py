@@ -21,13 +21,16 @@ config.verbose = 2000
 config.dali = False
 
 # config.rec = "/train_tmp/faces_emore"
-config.rec = '/datasets2/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/faces_webface_112x112'
+# config.rec = '/datasets2/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/faces_webface_112x112'
+config.rec = ['/datasets2/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/imgs_crops_112x112', '/datasets2/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized']
 
 # config.num_classes = 85742
-config.num_classes = 10572
+# config.num_classes = 10572
+config.num_classes = 20572     # 10572 + 10000
 
 # config.num_image = 5822653
-config.num_image = 490623
+# config.num_image = 490623
+config.num_image = 1040623     # 490623 + 550000
 
 # config.num_epoch = 20
 config.num_epoch = 30
@@ -35,7 +38,11 @@ config.warmup_epoch = 0
 
 # config.val_targets = ['lfw', 'cfp_fp', "agedb_30"]
 # config.val_targets = ['']
-config.val_targets = ['bupt']
+config.val_targets = ['/datasets2/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/faces_webface_112x112/lfw.bin', \
+                      '/datasets2/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/faces_webface_112x112/cfp_fp.bin', \
+                      '/datasets2/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/faces_webface_112x112/agedb_30.bin', \
+                      'bupt']
+# config.val_targets = ['bupt']
 config.val_dataset_dir = ['/datasets2/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
 config.val_protocol_path = ['/datasets2/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
 
@@ -53,7 +60,7 @@ config.using_wandb = True
 # config.wandb_entity = "entity"
 config.wandb_entity = "bovifocr"
 
-config.wandb_project = "R100_CASIA-Webface_10500classes_whole_dataset"
+config.wandb_project = "R100_CASIA-Webface_DCFace_20572classes_whole_dataset"
 config.wandb_log_all = True
 
 # config.save_artifacts = False

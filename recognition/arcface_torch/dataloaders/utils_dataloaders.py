@@ -35,6 +35,15 @@ def find_files(directory, extension, sort=True):
     return matching_files
 
 
+def merge_dicts(dict1, dict2):
+    if not dict1 is None and not dict2 is None:
+        keys1 = list(dict1.keys())
+        for key2 in dict2.keys():
+            if not key2 in keys1:
+                dict1[key2] = dict2[key2]
+    return dict1
+
+
 '''
 def find_neighbor_file(path_file, neighbor_ext):
     path_dir = os.path.dirname(path_file)

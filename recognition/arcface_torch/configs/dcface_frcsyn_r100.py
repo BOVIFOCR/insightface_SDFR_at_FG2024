@@ -22,8 +22,8 @@ config.verbose = 2000
 config.dali = False
 
 # config.rec = "/train_tmp/faces_emore"
-# config.rec = '/datasets2/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized'      # duo
-config.rec = '/nobackup/unico/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized'   # diolkos
+config.rec = '/datasets2/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized'      # duo
+# config.rec = '/nobackup/unico/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized'   # diolkos
 # config.rec = ''    # daugman
 
 # config.num_classes = 85742
@@ -41,12 +41,12 @@ config.warmup_epoch = 0
 config.val_targets = ['bupt']
 
 # duo
-# config.val_dataset_dir = ['/datasets2/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
-# config.val_protocol_path = ['/datasets2/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
+config.val_dataset_dir = ['/datasets2/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
+config.val_protocol_path = ['/datasets2/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
 
 # # diolkos
-config.val_dataset_dir = ['/nobackup/unico/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
-config.val_protocol_path = ['/nobackup/unico/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
+# config.val_dataset_dir = ['/nobackup/unico/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
+# config.val_protocol_path = ['/nobackup/unico/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
 
 # # daugman
 # config.val_dataset_dir = ['/home/bjgbiesseck/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']

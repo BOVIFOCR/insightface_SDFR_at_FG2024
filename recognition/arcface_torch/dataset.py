@@ -15,6 +15,7 @@ from torchvision.datasets import ImageFolder
 from utils.utils_distributed_sampler import DistributedSampler
 from utils.utils_distributed_sampler import get_dist_info, worker_init_fn
 
+from dataloaders.casiawebface_loader import CASIAWebFace_loader
 from dataloaders.gandiffface_loader import GANDiffFace_loader
 from dataloaders.dcface_loader import DCFace_loader
 
@@ -28,36 +29,57 @@ def get_dataloader(
     num_workers = 2,
     ) -> Iterable:
 
-    rec = os.path.join(root_dir, 'train.rec')
-    idx = os.path.join(root_dir, 'train.idx')
-    train_set = None
+    transform = transforms.Compose([
+                    transforms.RandomHorizontalFlip(),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+                    ])
 
-    # Synthetic
-    if root_dir == "synthetic":
-        train_set = SyntheticDataset()
-        dali = False
+    if type(root_dir) == list:
+        train_set = None
+        for r_dir in root_dir:
+            print(f'Loading train dataset \'{r_dir}\' ...')
+            if 'CASIA-WebFace'.lower() in r_dir.lower():
+                train_set = CASIAWebFace_loader(r_dir, transform, train_set)
+            elif 'DCFace'.lower() in r_dir.lower():
+                train_set = DCFace_loader(r_dir, transform, train_set)
+            elif 'GANDiffFace'.lower() in r_dir.lower():
+                train_set = GANDiffFace_loader(r_dir, transform, train_set)
+            else:
+                raise Exception(f'Dataset \'{r_dir}\' not identified!')
 
-    # Mxnet RecordIO
-    elif os.path.exists(rec) and os.path.exists(idx):
-        train_set = MXFaceDataset(root_dir=root_dir, local_rank=local_rank)
 
-    # Image Folder
-    else:
-        transform = transforms.Compose([
-                transforms.RandomHorizontalFlip(),
-                transforms.ToTensor(),
-                transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
-                ])
+    else:  # load only one dataset
 
-        if 'GANDiffFace'.lower() in root_dir.lower():
-            train_set = GANDiffFace_loader(root_dir, transform)
-        
-        elif 'DCFace'.lower() in root_dir.lower():
-            train_set = DCFace_loader(root_dir, transform)
+        rec = os.path.join(root_dir, 'train.rec')
+        idx = os.path.join(root_dir, 'train.idx')
+        train_set = None
 
+        # Synthetic
+        if root_dir == "synthetic":
+            print(f'Loading train dataset \'{root_dir}\' ...')
+            train_set = SyntheticDataset()
+            dali = False
+
+        # Mxnet RecordIO
+        elif os.path.exists(rec) and os.path.exists(idx):
+            print(f'Loading train dataset \'{root_dir}\' ...')
+            train_set = MXFaceDataset(root_dir=root_dir, local_rank=local_rank)
+
+        # Image Folder
         else:
-            # train_set = ImageFolder(root_dir, transform)        # original
-            raise Exception('Dataset could not be identified!')   # Bernardo
+
+            if 'GANDiffFace'.lower() in root_dir.lower():
+                print(f'Loading train dataset \'{root_dir}\' ...')
+                train_set = GANDiffFace_loader(root_dir, transform)
+
+            elif 'DCFace'.lower() in root_dir.lower():
+                print(f'Loading train dataset \'{root_dir}\' ...')
+                train_set = DCFace_loader(root_dir, transform)
+
+            else:
+                # train_set = ImageFolder(root_dir, transform)        # original
+                raise Exception('Dataset could not be identified!')   # Bernardo
 
 
     # DALI
