@@ -98,14 +98,22 @@ def main(args):
 
     backbone = get_model(
         cfg.network, dropout=0.0, fp16=cfg.fp16, num_features=cfg.embedding_size).cuda()
-
     backbone = torch.nn.parallel.DistributedDataParallel(
         module=backbone, broadcast_buffers=False, device_ids=[local_rank], bucket_cap_mb=16,
         find_unused_parameters=True)
-
     backbone.train()
     # FIXME using gradient checkpoint if there are some unused parameters will cause error
     backbone._set_static_graph()
+
+    # Discriminator of ethnic groups
+    backbone_discrim = get_model(
+        cfg.network_discrim, dropout=0.0, fp16=cfg.fp16, num_features=cfg.embedding_size).cuda()
+    backbone_discrim = torch.nn.parallel.DistributedDataParallel(
+        module=backbone_discrim, broadcast_buffers=False, device_ids=[local_rank], bucket_cap_mb=16,
+        find_unused_parameters=True)
+    backbone_discrim.train()
+    backbone_discrim._set_static_graph()
+
 
     margin_loss = CombinedMarginLoss(
         64,
@@ -121,14 +129,14 @@ def main(args):
             cfg.sample_rate, cfg.fp16)
         module_partial_fc.train().cuda()
 
-        module_partial_fc_race = PartialFC_V2_INVERSE(
+        module_partial_fc_discrim = PartialFC_V2_INVERSE(
             margin_loss, cfg.embedding_size, cfg.num_classes_races,
             cfg.sample_rate, cfg.fp16)
-        module_partial_fc_race.train().cuda()
+        module_partial_fc_discrim.train().cuda()
 
         # TODO the params of partial fc must be last in the params list
         opt = torch.optim.SGD(
-            params=[{"params": backbone.parameters()}, {"params": module_partial_fc.parameters()}, {"params": module_partial_fc_race.parameters()}],
+            params=[{"params": backbone.parameters()}, {"params": module_partial_fc.parameters()}, {"params": module_partial_fc_discrim.parameters()}],
             lr=cfg.lr, momentum=0.9, weight_decay=cfg.weight_decay)
 
     elif cfg.optimizer == "adamw":
@@ -161,8 +169,9 @@ def main(args):
         start_epoch = dict_checkpoint["epoch"]
         global_step = dict_checkpoint["global_step"]
         backbone.module.load_state_dict(dict_checkpoint["state_dict_backbone"])
+        backbone_discrim.module.load_state_dict(dict_checkpoint["state_dict_backbone_discrim"])
         module_partial_fc.load_state_dict(dict_checkpoint["state_dict_softmax_fc"])
-        module_partial_fc_race.load_state_dict(dict_checkpoint["state_dict_softmax_fc_race"])
+        module_partial_fc_discrim.load_state_dict(dict_checkpoint["state_dict_softmax_fc_race"])
         opt.load_state_dict(dict_checkpoint["state_optimizer"])
         lr_scheduler.load_state_dict(dict_checkpoint["state_lr_scheduler"])
         del dict_checkpoint
@@ -200,9 +209,12 @@ def main(args):
                 img, local_labels, race_label, gender_label = train_batch
 
             global_step += 1
+
             local_embeddings = backbone(img)
+            discrim_embeddings = backbone_discrim(torch.unsqueeze(local_embeddings, 1))
+
             loss_id: torch.Tensor = module_partial_fc(local_embeddings, local_labels)
-            loss_race: torch.Tensor = module_partial_fc_race(local_embeddings, race_label)
+            loss_race: torch.Tensor = module_partial_fc_discrim(discrim_embeddings, race_label)
             # total_loss: torch.Tensor = loss_id + loss_race
             total_loss: torch.Tensor = loss_id + (-loss_race)
 
@@ -249,7 +261,7 @@ def main(args):
                 "global_step": global_step,
                 "state_dict_backbone": backbone.module.state_dict(),
                 "state_dict_softmax_fc": module_partial_fc.state_dict(),
-                "state_dict_softmax_fc_race": module_partial_fc_race.state_dict(),
+                "state_dict_softmax_fc_race": module_partial_fc_discrim.state_dict(),
                 "state_optimizer": opt.state_dict(),
                 "state_lr_scheduler": lr_scheduler.state_dict()
             }

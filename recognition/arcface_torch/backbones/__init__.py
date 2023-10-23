@@ -1,10 +1,12 @@
-from .iresnet import iresnet18, iresnet34, iresnet50, iresnet100, iresnet200
+from .iresnet import iresnet18, iresnet18_1x512, iresnet34, iresnet50, iresnet100, iresnet200
 from .mobilefacenet import get_mbf
 
 
 def get_model(name, **kwargs):
     # resnet
-    if name == "r18":
+    if name == "r18_1x512":
+        return iresnet18_1x512(False, **kwargs)
+    elif name == "r18":
         return iresnet18(False, **kwargs)
     elif name == "r34":
         return iresnet34(False, **kwargs)

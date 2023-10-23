@@ -7,6 +7,7 @@ from easydict import EasyDict as edict
 config = edict()
 config.margin_list = (1.0, 0.5, 0.0)
 config.network = "r100"
+config.network_discrim = "r18_1x512"
 config.resume = False
 config.output = None
 config.embedding_size = 512
@@ -62,8 +63,8 @@ config.wandb_key = "d7664714c72bd594a957381812da450279f80f66"
 
 config.suffix_run_name = None
 
-# config.using_wandb = False
-config.using_wandb = True
+config.using_wandb = False
+# config.using_wandb = True
 
 # config.wandb_entity = "entity"
 config.wandb_entity = "bovifocr"
