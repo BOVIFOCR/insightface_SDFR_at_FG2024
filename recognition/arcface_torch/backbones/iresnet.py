@@ -161,7 +161,7 @@ class IResNet(nn.Module):
         x = self.fc(x.float() if self.fp16 else x)
         x = self.features(x)
         return x
-    
+
 
 
 
@@ -175,20 +175,23 @@ class IBasicBlock_1D(nn.Module):
             raise ValueError('BasicBlock only supports groups=1 and base_width=64')
         if dilation > 1:
             raise NotImplementedError("Dilation > 1 not supported in BasicBlock")
+        # self.bn1 = nn.BatchNorm2d(inplanes, eps=1e-05,)
         self.bn1 = nn.BatchNorm1d(inplanes, eps=1e-05,)
 
         # self.conv1 = conv3x3(inplanes, planes)
-        # self.conv1 = conv1x1(inplanes, planes)
-        self.conv1 = nn.Conv1d(inplanes, planes, kernel_size=1, stride=stride, padding=0, bias=False)
+        self.conv1 = nn.Conv1d(inplanes, planes, kernel_size=3, padding=dilation, dilation=dilation, bias=False)
 
         self.bn2 = nn.BatchNorm1d(planes, eps=1e-05,)
+
+        # self.prelu = nn.PReLU(planes)
         self.prelu = nn.PReLU(planes)
 
         # self.conv2 = conv3x3(planes, planes, stride)
-        # self.conv2 = conv1x1(planes, planes, stride)
-        self.conv2 = nn.Conv1d(inplanes, planes, kernel_size=1, stride=stride, padding=0, bias=False)
+        self.conv2 = nn.Conv1d(planes, planes, kernel_size=3, stride=stride, padding=dilation, dilation=dilation, bias=False)
 
+        # self.bn3 = nn.BatchNorm2d(planes, eps=1e-05,)
         self.bn3 = nn.BatchNorm1d(planes, eps=1e-05,)
+
         self.downsample = downsample
         self.stride = stride
 
@@ -213,7 +216,8 @@ class IBasicBlock_1D(nn.Module):
 
 
 class IResNet_1D(nn.Module):
-    fc_scale = 7 * 7
+    # fc_scale = 7 * 7
+    fc_scale = 4 * 8
     def __init__(self,
                  block, layers, dropout=0, num_features=256, zero_init_residual=False,
                  groups=1, width_per_group=64, replace_stride_with_dilation=None, fp16=False):
@@ -249,16 +253,16 @@ class IResNet_1D(nn.Module):
                                        stride=2,
                                        dilate=replace_stride_with_dilation[1])
         self.layer4 = self._make_layer_1d(block,
-                                       512,
+                                       256,
                                        layers[3],
                                        stride=2,
                                        dilate=replace_stride_with_dilation[2])
         
         # self.bn2 = nn.BatchNorm2d(512 * block.expansion, eps=1e-05,)
-        self.bn2 = nn.BatchNorm1d(512 * block.expansion, eps=1e-05,)
-        
+        self.bn2 = nn.BatchNorm1d(256 * block.expansion, eps=1e-05,)
+
         self.dropout = nn.Dropout(p=dropout, inplace=True)
-        self.fc = nn.Linear(512 * block.expansion * self.fc_scale, num_features)
+        self.fc = nn.Linear(256 * block.expansion * self.fc_scale, num_features)
         self.features = nn.BatchNorm1d(num_features, eps=1e-05)
         nn.init.constant_(self.features.weight, 1.0)
         self.features.weight.requires_grad = False
@@ -286,8 +290,7 @@ class IResNet_1D(nn.Module):
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
                 # conv1x1(self.inplanes, planes * block.expansion, stride),
-                # nn.Conv1d(self.inplanes, planes * block.expansion, kernel_size=1, stride=1, padding=1, bias=False),
-                nn.Conv1d(self.inplanes, planes * block.expansion, kernel_size=1, stride=stride+2, padding=0, bias=False),
+                nn.Conv1d(self.inplanes, planes * block.expansion, kernel_size=1, stride=stride, bias=False),
                 # nn.BatchNorm2d(planes * block.expansion, eps=1e-05, ),
                 nn.BatchNorm1d(planes * block.expansion, eps=1e-05, ),
             )
@@ -321,6 +324,7 @@ class IResNet_1D(nn.Module):
         x = self.fc(x.float() if self.fp16 else x)
         x = self.features(x)
         return x
+
 
 
 

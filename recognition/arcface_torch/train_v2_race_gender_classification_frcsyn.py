@@ -107,7 +107,7 @@ def main(args):
 
     # Discriminator of ethnic groups
     backbone_discrim = get_model(
-        cfg.network_discrim, dropout=0.0, fp16=cfg.fp16, num_features=cfg.embedding_size).cuda()
+        cfg.network_discrim, dropout=0.0, fp16=cfg.fp16, num_features=cfg.embedding_size_discrim).cuda()
     backbone_discrim = torch.nn.parallel.DistributedDataParallel(
         module=backbone_discrim, broadcast_buffers=False, device_ids=[local_rank], bucket_cap_mb=16,
         find_unused_parameters=True)
@@ -129,14 +129,15 @@ def main(args):
             cfg.sample_rate, cfg.fp16)
         module_partial_fc.train().cuda()
 
-        module_partial_fc_discrim = PartialFC_V2_INVERSE(
-            margin_loss, cfg.embedding_size, cfg.num_classes_races,
+        module_partial_fc_discrim = PartialFC_V2(
+            margin_loss, cfg.embedding_size_discrim, cfg.num_classes_races,
             cfg.sample_rate, cfg.fp16)
         module_partial_fc_discrim.train().cuda()
 
         # TODO the params of partial fc must be last in the params list
         opt = torch.optim.SGD(
-            params=[{"params": backbone.parameters()}, {"params": module_partial_fc.parameters()}, {"params": module_partial_fc_discrim.parameters()}],
+            params=[{"params": backbone.parameters()}, {"params": module_partial_fc.parameters()},
+                    {"params": backbone_discrim.parameters()}, {"params": module_partial_fc_discrim.parameters()}],
             lr=cfg.lr, momentum=0.9, weight_decay=cfg.weight_decay)
 
     elif cfg.optimizer == "adamw":
@@ -171,7 +172,7 @@ def main(args):
         backbone.module.load_state_dict(dict_checkpoint["state_dict_backbone"])
         backbone_discrim.module.load_state_dict(dict_checkpoint["state_dict_backbone_discrim"])
         module_partial_fc.load_state_dict(dict_checkpoint["state_dict_softmax_fc"])
-        module_partial_fc_discrim.load_state_dict(dict_checkpoint["state_dict_softmax_fc_race"])
+        module_partial_fc_discrim.load_state_dict(dict_checkpoint["state_dict_softmax_fc_discrim"])
         opt.load_state_dict(dict_checkpoint["state_optimizer"])
         lr_scheduler.load_state_dict(dict_checkpoint["state_lr_scheduler"])
         del dict_checkpoint
@@ -194,7 +195,7 @@ def main(args):
     )
 
     loss_id_am = AverageMeter()
-    total_loss_am = AverageMeter()
+    loss_discrim_am = AverageMeter()
     amp = torch.cuda.amp.grad_scaler.GradScaler(growth_interval=100)
 
     for epoch in range(start_epoch, cfg.num_epoch):
@@ -211,16 +212,15 @@ def main(args):
             global_step += 1
 
             local_embeddings = backbone(img)
-            discrim_embeddings = backbone_discrim(torch.unsqueeze(local_embeddings, 1))
+            local_embeddings_normalized = torch.unsqueeze(torch.nn.functional.normalize(local_embeddings, dim=1), 1).detach()
+            discrim_embeddings = backbone_discrim(local_embeddings_normalized)
 
             loss_id: torch.Tensor = module_partial_fc(local_embeddings, local_labels)
-            loss_race: torch.Tensor = module_partial_fc_discrim(discrim_embeddings, race_label)
-            # total_loss: torch.Tensor = loss_id + loss_race
-            total_loss: torch.Tensor = loss_id + (-loss_race)
+            loss_discrim: torch.Tensor = module_partial_fc_discrim(discrim_embeddings, race_label)
 
             if cfg.fp16:
-                # amp.scale(loss_id).backward()    # original
-                amp.scale(total_loss).backward()   # Bernardo
+                amp.scale(loss_id).backward()
+                amp.scale(loss_discrim).backward()   # Bernardo
                 if global_step % cfg.gradient_acc == 0:
                     amp.unscale_(opt)
                     torch.nn.utils.clip_grad_norm_(backbone.parameters(), 5)
@@ -228,8 +228,8 @@ def main(args):
                     amp.update()
                     opt.zero_grad()
             else:
-                # loss_id.backward()    # original
-                total_loss.backward()   # Bernardo
+                loss_id.backward()
+                loss_discrim.backward()   # Bernardo
                 if global_step % cfg.gradient_acc == 0:
                     torch.nn.utils.clip_grad_norm_(backbone.parameters(), 5)
                     opt.step()
@@ -240,17 +240,16 @@ def main(args):
                 if wandb_logger:
                     wandb_logger.log({
                         'Loss/Step LossID': loss_id.item(),
-                        'Loss/Step LossRACE': loss_race.item(),
-                        'Loss/Step LossTOTAL': total_loss.item(),
+                        'Loss/Step LossDISCRIM': loss_discrim.item(),
                         # 'Loss/Train Loss': loss_id_am.avg,
                         'Process/Step': global_step,
                         'Process/Epoch': epoch
                     })
-                    
-                # loss_id_am.update(loss_id.item(), 1)    # original
-                # callback_logging(global_step, loss_id_am, epoch, cfg.fp16, lr_scheduler.get_last_lr()[0], amp)
-                total_loss_am.update(total_loss.item(), 1)   # Bernardo
-                callback_logging(global_step, total_loss_am, epoch, cfg.fp16, lr_scheduler.get_last_lr()[0], amp)
+
+                loss_id_am.update(loss_id.item(), 1)
+                callback_logging(global_step, loss_id_am, epoch, cfg.fp16, lr_scheduler.get_last_lr()[0], amp)
+                loss_discrim_am.update(loss_discrim.item(), 1)                                                       # Bernardo
+                callback_logging(global_step, loss_discrim_am, epoch, cfg.fp16, lr_scheduler.get_last_lr()[0], amp)  # Bernardo
 
                 if global_step % cfg.verbose == 0 and global_step > 0:
                     callback_verification(global_step, backbone)
@@ -260,8 +259,9 @@ def main(args):
                 "epoch": epoch + 1,
                 "global_step": global_step,
                 "state_dict_backbone": backbone.module.state_dict(),
+                "state_dict_backbone_discrim": backbone_discrim.module.state_dict(),
                 "state_dict_softmax_fc": module_partial_fc.state_dict(),
-                "state_dict_softmax_fc_race": module_partial_fc_discrim.state_dict(),
+                "state_dict_softmax_fc_discrim": module_partial_fc_discrim.state_dict(),
                 "state_optimizer": opt.state_dict(),
                 "state_lr_scheduler": lr_scheduler.state_dict()
             }
