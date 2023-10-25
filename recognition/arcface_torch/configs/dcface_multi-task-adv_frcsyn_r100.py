@@ -9,6 +9,10 @@ config.margin_list = (1.0, 0.5, 0.0)
 config.network = "r100"
 config.network_discrim = "r18_1x512"
 # config.network_discrim = "r18"
+
+# config.alfa_discrim = 0.5
+config.alfa_discrim = 0.75
+
 config.resume = False
 config.output = None
 config.embedding_size = 512
@@ -37,13 +41,17 @@ config.num_classes_races = 5
 # config.num_image = 5822653
 config.num_image = 550000
 
-config.num_epoch = 20
-# config.num_epoch = 30
+# config.num_epoch = 20
+config.num_epoch = 30
 config.warmup_epoch = 0
 
 # config.val_targets = ['lfw', 'cfp_fp', "agedb_30"]
 # config.val_targets = ['']
-config.val_targets = ['bupt']
+config.val_targets = ['/home/bjgbiesseck/datasets/frcsyn_wacv2024/faces_webface_112x112/lfw.bin', \
+                      '/home/bjgbiesseck/datasets/frcsyn_wacv2024/faces_webface_112x112/cfp_fp.bin', \
+                      '/home/bjgbiesseck/datasets/frcsyn_wacv2024/faces_webface_112x112/agedb_30.bin', \
+                      'bupt']
+# config.val_targets = ['bupt']
 
 # duo
 # config.val_dataset_dir = ['/datasets2/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']

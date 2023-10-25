@@ -196,7 +196,10 @@ def main(args):
 
     loss_id_am = AverageMeter()
     loss_discrim_am = AverageMeter()
+    loss_total_am = AverageMeter()
     amp = torch.cuda.amp.grad_scaler.GradScaler(growth_interval=100)
+
+    alfa = 0
 
     for epoch in range(start_epoch, cfg.num_epoch):
 
@@ -207,31 +210,38 @@ def main(args):
             if len(train_batch) == 2:
                 img, local_labels = train_batch
             elif len(train_batch) == 4:
-                img, local_labels, race_label, gender_label = train_batch
+                img, local_labels, race_labels, gender_labels = train_batch
 
             global_step += 1
+            alfa = cfg.alfa_discrim
 
             local_embeddings = backbone(img)
-            local_embeddings_normalized = torch.unsqueeze(torch.nn.functional.normalize(local_embeddings, dim=1), 1).detach()
+            # local_embeddings_normalized = torch.unsqueeze(torch.nn.functional.normalize(local_embeddings, dim=1), 1).detach()
+            local_embeddings_normalized = torch.unsqueeze(torch.nn.functional.normalize(local_embeddings, dim=1), 1)
             discrim_embeddings = backbone_discrim(local_embeddings_normalized)
 
             loss_id: torch.Tensor = module_partial_fc(local_embeddings, local_labels)
-            loss_discrim: torch.Tensor = module_partial_fc_discrim(discrim_embeddings, race_label)
+            loss_discrim: torch.Tensor = module_partial_fc_discrim(discrim_embeddings, race_labels)
+            loss_total: torch.Tensor = loss_id - (alfa * loss_discrim)
 
             if cfg.fp16:
-                amp.scale(loss_id).backward()
-                amp.scale(loss_discrim).backward()   # Bernardo
+                # amp.scale(loss_id).backward()
+                # amp.scale(loss_discrim).backward()   # Bernardo
+                amp.scale(loss_total).backward()       # Bernardo
                 if global_step % cfg.gradient_acc == 0:
                     amp.unscale_(opt)
                     torch.nn.utils.clip_grad_norm_(backbone.parameters(), 5)
+                    torch.nn.utils.clip_grad_norm_(backbone_discrim.parameters(), 5)
                     amp.step(opt)
                     amp.update()
                     opt.zero_grad()
             else:
-                loss_id.backward()
-                loss_discrim.backward()   # Bernardo
+                # loss_id.backward()
+                # loss_discrim.backward()   # Bernardo
+                loss_total.backward()       # Bernardo
                 if global_step % cfg.gradient_acc == 0:
                     torch.nn.utils.clip_grad_norm_(backbone.parameters(), 5)
+                    torch.nn.utils.clip_grad_norm_(backbone_discrim.parameters(), 5)
                     opt.step()
                     opt.zero_grad()
             lr_scheduler.step()
@@ -241,15 +251,18 @@ def main(args):
                     wandb_logger.log({
                         'Loss/Step LossID': loss_id.item(),
                         'Loss/Step LossDISCRIM': loss_discrim.item(),
+                        'Loss/Step LossTOTAL': loss_total.item(),
                         # 'Loss/Train Loss': loss_id_am.avg,
                         'Process/Step': global_step,
                         'Process/Epoch': epoch
                     })
 
                 loss_id_am.update(loss_id.item(), 1)
-                callback_logging(global_step, loss_id_am, epoch, cfg.fp16, lr_scheduler.get_last_lr()[0], amp)
                 loss_discrim_am.update(loss_discrim.item(), 1)                                                       # Bernardo
+                loss_total_am.update(loss_total.item(), 1)                                                           # Bernardo
+                callback_logging(global_step, loss_id_am, epoch, cfg.fp16, lr_scheduler.get_last_lr()[0], amp)
                 callback_logging(global_step, loss_discrim_am, epoch, cfg.fp16, lr_scheduler.get_last_lr()[0], amp)  # Bernardo
+                callback_logging(global_step, loss_total_am, epoch, cfg.fp16, lr_scheduler.get_last_lr()[0], amp)    # Bernardo
 
                 if global_step % cfg.verbose == 0 and global_step > 0:
                     callback_verification(global_step, backbone)
