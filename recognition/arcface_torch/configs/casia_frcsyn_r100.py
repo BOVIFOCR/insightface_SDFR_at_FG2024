@@ -20,8 +20,20 @@ config.verbose = 2000
 # config.verbose = 10
 config.dali = False
 
+
+# config.loss = 'CombinedMarginLoss'   # default
+config.loss = 'LDAMLoss'
+# config.loss = 'FocalLoss'
+
+# config.train_rule = None             # default
+# config.train_rule = 'Resample'
+config.train_rule = 'Reweight'
+# config.train_rule = 'DRW'
+
+
 # config.rec = "/train_tmp/faces_emore"
-config.rec = '/datasets2/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/faces_webface_112x112'
+# config.rec = '/datasets2/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/faces_webface_112x112'   # duo
+config.rec = '/nobackup/unico/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/imgs_crops_112x112'   # diolkos
 
 # config.num_classes = 85742
 config.num_classes = 10572
@@ -35,9 +47,13 @@ config.warmup_epoch = 0
 
 # config.val_targets = ['lfw', 'cfp_fp', "agedb_30"]
 # config.val_targets = ['']
+# config.val_targets = ['bupt']
+# config.val_dataset_dir = ['/datasets2/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
+# config.val_protocol_path = ['/datasets2/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
+config.val_targets = ['/home/bjgbiesseck/datasets/frcsyn_wacv2024/faces_webface_112x112/lfw.bin', '/home/bjgbiesseck/datasets/frcsyn_wacv2024/faces_webface_112x112/cfp_fp.bin', "agedb_30.bin"]
 config.val_targets = ['bupt']
-config.val_dataset_dir = ['/datasets2/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
-config.val_protocol_path = ['/datasets2/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
+config.val_dataset_dir = ['/nobackup/unico/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
+config.val_protocol_path = ['/nobackup/unico/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
 
 
 
@@ -47,8 +63,8 @@ config.wandb_key = "d7664714c72bd594a957381812da450279f80f66"
 
 config.suffix_run_name = None
 
-# config.using_wandb = False
-config.using_wandb = True
+config.using_wandb = False
+# config.using_wandb = True
 
 # config.wandb_entity = "entity"
 config.wandb_entity = "bovifocr"

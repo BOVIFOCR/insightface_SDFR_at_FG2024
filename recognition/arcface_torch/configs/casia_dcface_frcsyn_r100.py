@@ -20,6 +20,17 @@ config.verbose = 2000
 # config.verbose = 10
 config.dali = False
 
+
+# config.loss = 'CombinedMarginLoss'
+config.loss = 'LDAMLoss'
+# config.loss = 'FocalLoss'
+
+# config.train_rule == 'Resample'
+config.train_rule == 'Reweight'
+# config.train_rule == 'DRW'
+
+
+
 # config.rec = "/train_tmp/faces_emore"
 # config.rec = '/datasets2/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/faces_webface_112x112'
 config.rec = ['/datasets2/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/imgs_crops_112x112', '/datasets2/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized']

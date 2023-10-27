@@ -9,6 +9,7 @@ import torch
 from backbones import get_model
 from dataset import get_dataloader
 from losses import CombinedMarginLoss
+from losses_frcsyn import LDAMLoss, FocalLoss
 from lr_scheduler import PolyScheduler
 from partial_fc_v2 import PartialFC_V2
 from torch import distributed
@@ -86,7 +87,7 @@ def main(args):
         except Exception as e:
             print("WandB Data (Entity and Project name) must be provided in config file (base.py).")
             print(f"Config Error: {e}")
-            
+
     train_loader = get_dataloader(
         cfg.rec,
         local_rank,
@@ -107,13 +108,28 @@ def main(args):
     # FIXME using gradient checkpoint if there are some unused parameters will cause error
     backbone._set_static_graph()
 
-    margin_loss = CombinedMarginLoss(
-        64,
-        cfg.margin_list[0],
-        cfg.margin_list[1],
-        cfg.margin_list[2],
-        cfg.interclass_filtering_threshold
-    )
+
+    cls_num_list = train_loader.dataset.get_cls_num_list()
+    if cfg.train_rule == 'Reweight':
+        train_sampler = None
+        beta = 0.9999
+        effective_num = 1.0 - np.power(beta, cls_num_list)
+        per_cls_weights = (1.0 - beta) / np.array(effective_num)
+        per_cls_weights = per_cls_weights / np.sum(per_cls_weights) * len(cls_num_list)
+        per_cls_weights = torch.FloatTensor(per_cls_weights).cuda()
+
+
+    if cfg.loss == 'CombinedMarginLoss':
+        margin_loss = CombinedMarginLoss(
+            64,
+            cfg.margin_list[0],
+            cfg.margin_list[1],
+            cfg.margin_list[2],
+            cfg.interclass_filtering_threshold
+        )
+    elif cfg.loss == 'LDAMLoss':
+        margin_loss = LDAMLoss(cls_num_list=cls_num_list, max_m=0.5, s=30, weight=per_cls_weights)
+
 
     if cfg.optimizer == "sgd":
         module_partial_fc = PartialFC_V2(

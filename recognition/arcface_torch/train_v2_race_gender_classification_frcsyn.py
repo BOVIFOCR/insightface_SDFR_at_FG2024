@@ -222,7 +222,8 @@ def main(args):
 
             loss_id: torch.Tensor = module_partial_fc(local_embeddings, local_labels)
             loss_discrim: torch.Tensor = module_partial_fc_discrim(discrim_embeddings, race_labels)
-            loss_total: torch.Tensor = loss_id - (alfa * loss_discrim)
+            # loss_total: torch.Tensor = loss_id - (alfa * loss_discrim)   # adversarial learning
+            loss_total: torch.Tensor = loss_id + (alfa * loss_discrim)
 
             if cfg.fp16:
                 # amp.scale(loss_id).backward()

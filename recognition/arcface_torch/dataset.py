@@ -68,8 +68,11 @@ def get_dataloader(
 
         # Image Folder
         else:
+            if 'CASIA-WebFace'.lower() in root_dir.lower():
+                print(f'Loading train dataset \'{root_dir}\' ...')
+                train_set = CASIAWebFace_loader(root_dir, transform)
 
-            if 'GANDiffFace'.lower() in root_dir.lower():
+            elif 'GANDiffFace'.lower() in root_dir.lower():
                 print(f'Loading train dataset \'{root_dir}\' ...')
                 train_set = GANDiffFace_loader(root_dir, transform)
 
