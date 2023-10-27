@@ -109,6 +109,7 @@ def main(args):
     backbone._set_static_graph()
 
 
+
     cls_num_list = train_loader.dataset.get_cls_num_list()
     if cfg.train_rule == 'Reweight':
         train_sampler = None
@@ -119,6 +120,7 @@ def main(args):
         per_cls_weights = torch.FloatTensor(per_cls_weights).cuda()
 
 
+
     if cfg.loss == 'CombinedMarginLoss':
         margin_loss = CombinedMarginLoss(
             64,
@@ -127,25 +129,34 @@ def main(args):
             cfg.margin_list[2],
             cfg.interclass_filtering_threshold
         )
-    elif cfg.loss == 'LDAMLoss':
-        margin_loss = LDAMLoss(cls_num_list=cls_num_list, max_m=0.5, s=30, weight=per_cls_weights)
-
-
-    if cfg.optimizer == "sgd":
         module_partial_fc = PartialFC_V2(
             margin_loss, cfg.embedding_size, cfg.num_classes,
             cfg.sample_rate, cfg.fp16)
         module_partial_fc.train().cuda()
+
+    elif cfg.loss == 'LDAMLoss':
+        margin_loss = LDAMLoss(cls_num_list=cls_num_list, max_m=0.5, s=64, weight=per_cls_weights, \
+                               num_classes=cfg.num_classes, embedding_size=cfg.embedding_size)
+        module_partial_fc = margin_loss
+        module_partial_fc.train().cuda()
+
+
+
+    if cfg.optimizer == "sgd":
+        # module_partial_fc = PartialFC_V2(
+        #     margin_loss, cfg.embedding_size, cfg.num_classes,
+        #     cfg.sample_rate, cfg.fp16)
+        # module_partial_fc.train().cuda()
         # TODO the params of partial fc must be last in the params list
         opt = torch.optim.SGD(
             params=[{"params": backbone.parameters()}, {"params": module_partial_fc.parameters()}],
             lr=cfg.lr, momentum=0.9, weight_decay=cfg.weight_decay)
 
     elif cfg.optimizer == "adamw":
-        module_partial_fc = PartialFC_V2(
-            margin_loss, cfg.embedding_size, cfg.num_classes,
-            cfg.sample_rate, cfg.fp16)
-        module_partial_fc.train().cuda()
+        # module_partial_fc = PartialFC_V2(
+        #     margin_loss, cfg.embedding_size, cfg.num_classes,
+        #     cfg.sample_rate, cfg.fp16)
+        # module_partial_fc.train().cuda()
         opt = torch.optim.AdamW(
             params=[{"params": backbone.parameters()}, {"params": module_partial_fc.parameters()}],
             lr=cfg.lr, weight_decay=cfg.weight_decay)

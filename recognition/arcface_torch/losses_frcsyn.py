@@ -3,6 +3,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn.functional import linear, normalize
 import numpy as np
 
 
@@ -25,7 +26,8 @@ class FocalLoss(nn.Module):
 
 class LDAMLoss(nn.Module):
     
-    def __init__(self, cls_num_list, max_m=0.5, weight=None, s=30):
+    def __init__(self, cls_num_list, max_m=0.5, weight=None, s=30, \
+                 num_classes=10000, embedding_size=512):
         super(LDAMLoss, self).__init__()
         m_list = 1.0 / np.sqrt(np.sqrt(cls_num_list))
         m_list = m_list * (max_m / np.max(m_list))
@@ -35,7 +37,15 @@ class LDAMLoss(nn.Module):
         self.s = s
         self.weight = weight
 
+        self.num_classes, self.embedding_size = num_classes, embedding_size
+        self.weights = torch.nn.Parameter(torch.normal(0, 0.01, (self.num_classes, self.embedding_size)))
+
+
     def forward(self, x, target):
+        norm_embeddings = normalize(x)
+        norm_weight_activated = normalize(self.weights)
+        x = linear(norm_embeddings, norm_weight_activated)
+
         target = target.squeeze()
         # index = torch.zeros_like(x, dtype=torch.uint8)  # original
         index = torch.zeros_like(x, dtype=torch.bool)     # Bernardo
@@ -48,8 +58,8 @@ class LDAMLoss(nn.Module):
     
         output = torch.where(index, x_m, x)
 
-        # return F.cross_entropy(self.s*output, target, weight=self.weight)
-        return self.s*output
+        return F.cross_entropy(self.s*output, target, weight=self.weight)
+        # return self.s*output
     
 
 
