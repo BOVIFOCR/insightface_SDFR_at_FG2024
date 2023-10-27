@@ -31,7 +31,7 @@ class DCFace_loader(Dataset):
         self.root_dir = root_dir
         self.file_ext = '.jpg'
         self.path_files = ud.find_files(self.root_dir, self.file_ext)
-        self.samples_list, self.subjs_list, self.races_list, self.genders_list = self.make_samples_list_with_labels(self.path_files)
+        self.samples_list, self.subjs_list, self.subjs_dict_num_samples, self.races_list, self.genders_list = self.make_samples_list_with_labels(self.path_files)
         # print('len(self.samples_list):', len(self.samples_list))
         # print('len(self.subjs_list):', len(self.subjs_list))
         # print('len(self.races_list):', len(self.races_list))
@@ -45,6 +45,7 @@ class DCFace_loader(Dataset):
             self.path_files += other_dataset.path_files
             self.samples_list += other_dataset.samples_list
             self.subjs_list = ud.merge_dicts(self.subjs_list, other_dataset.subjs_list)
+            self.subjs_dict_num_samples = ud.merge_dicts(self.subjs_dict_num_samples, other_dataset.subjs_dict_num_samples)
             self.races_list = ud.merge_dicts(self.races_list, other_dataset.races_list)
             self.genders_list = ud.merge_dicts(self.genders_list, other_dataset.genders_list)
         # print('len(self.samples_list):', len(self.samples_list))
@@ -76,17 +77,19 @@ class DCFace_loader(Dataset):
     def make_samples_list_with_labels(self, path_files):
         subjs_dict, races_dict, genders_dict = self.get_subj_race_gender_dicts(path_files)
         samples_list = [None] * len(path_files)
+        subjs_dict_num_samples = {subj:0 for subj in list(subjs_dict.keys())}
         for i, path_file in enumerate(path_files):       # '/datasets2/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized/Asian/Female/34/0.jpg'
             subj = 'dcface_' + path_file.split('/')[-2]  # 'dcface_34'
             gender = path_file.split('/')[-3]            # 'Female'
             race = path_file.split('/')[-4]              # 'Asian'
             
+            subjs_dict_num_samples[subj] += 1
             subj_idx = subjs_dict[subj]
             gender_idx = genders_dict[gender]
             race_idx = races_dict[race]
             samples_list[i] = (path_file, subj_idx, race_idx, gender_idx)
 
-        return samples_list, subjs_dict, races_dict, genders_dict
+        return samples_list, subjs_dict, subjs_dict_num_samples, races_dict, genders_dict
 
 
     def normalize_img(self, img):
@@ -131,6 +134,12 @@ class DCFace_loader(Dataset):
         # return len(self.imgidx)       # original
         return len(self.samples_list)   # Bernardo
     
+    def get_cls_num_list(self):
+        cls_num_list = []
+        for key in list(self.subjs_dict_num_samples.keys()):
+            cls_num_list.append(self.subjs_dict_num_samples[key])
+        return cls_num_list
+
 
 
 if __name__ == '__main__':
