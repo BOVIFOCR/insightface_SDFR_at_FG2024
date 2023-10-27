@@ -1,4 +1,6 @@
 from easydict import EasyDict as edict
+import os
+uname = os.uname()
 
 # make training faster
 # our RAM is 256G
@@ -22,20 +24,47 @@ config.verbose = 2000
 config.dali = False
 
 
-# config.loss = 'CombinedMarginLoss'   # default
-config.loss = 'LDAMLoss'
+config.loss = 'CombinedMarginLoss'   # default
+# config.loss = 'LDAMLoss'
 # config.loss = 'FocalLoss'
 
-# config.train_rule = None             # default
+config.train_rule = None             # default
 # config.train_rule = 'Resample'
-config.train_rule = 'Reweight'
+# config.train_rule = 'Reweight'
 # config.train_rule = 'DRW'
 
 
-# config.rec = "/train_tmp/faces_emore"
-config.rec = '/datasets2/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized'      # duo
-# config.rec = '/nobackup/unico/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized'   # diolkos
-# config.rec = ''    # daugman
+
+if uname.nodename == 'duo':
+    # config.rec = "/train_tmp/faces_emore"
+    config.rec = '/datasets2/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized'      # duo
+
+    # config.val_targets = ['lfw', 'cfp_fp', "agedb_30"]
+    # config.val_targets = ['']
+    config.val_targets = ['/datasets2/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/faces_webface_112x112/lfw.bin', '/datasets2/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/faces_webface_112x112/cfp_fp.bin', '/datasets2/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/faces_webface_112x112/agedb_30.bin', 'bupt']
+    # config.val_targets = ['bupt']
+    config.val_dataset_dir = ['/datasets2/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
+    config.val_protocol_path = ['/datasets2/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
+
+elif uname.nodename == 'diolkos':
+    config.rec = '/nobackup/unico/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized'   # diolkos
+
+    config.val_targets = ['/home/bjgbiesseck/datasets/frcsyn_wacv2024/faces_webface_112x112/lfw.bin', '/home/bjgbiesseck/datasets/frcsyn_wacv2024/faces_webface_112x112/cfp_fp.bin', '/home/bjgbiesseck/datasets/frcsyn_wacv2024/faces_webface_112x112/agedb_30.bin', 'bupt']
+    # config.val_targets = ['bupt']
+    config.val_dataset_dir = ['/nobackup/unico/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
+    config.val_protocol_path = ['/nobackup/unico/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
+
+elif uname.nodename == 'daugman':
+    config.rec = '/home/bjgbiesseck/datasets/synthetic/DCFace/dcface_wacv/organized'
+
+    config.val_targets = ['/home/bjgbiesseck/datasets/real/1_CASIA-WebFace/faces_webface_112x112/lfw.bin', '/home/bjgbiesseck/datasets/real/1_CASIA-WebFace/faces_webface_112x112/cfp_fp.bin', '/home/bjgbiesseck/datasets/real/1_CASIA-WebFace/faces_webface_112x112/agedb_30.bin', 'bupt']
+    # config.val_targets = ['bupt']
+    config.val_dataset_dir = ['/home/bjgbiesseck/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
+    config.val_protocol_path = ['/groups/unico/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
+
+else:
+    raise Exception(f'Paths of train and val datasets could not be found in file \'{__file__}\'')
+
 
 # config.num_classes = 85742
 config.num_classes = 10000
@@ -46,25 +75,6 @@ config.num_image = 550000
 config.num_epoch = 20
 # config.num_epoch = 30
 config.warmup_epoch = 0
-
-# config.val_targets = ['lfw', 'cfp_fp', "agedb_30"]
-# config.val_targets = ['']
-config.val_targets = ['/datasets2/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/faces_webface_112x112/lfw.bin', '/datasets2/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/faces_webface_112x112/cfp_fp.bin', '/datasets2/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/faces_webface_112x112/agedb_30.bin']
-config.val_targets = ['bupt']
-config.val_dataset_dir = ['/datasets2/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
-config.val_protocol_path = ['/datasets2/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
-# config.val_targets = ['/home/bjgbiesseck/datasets/frcsyn_wacv2024/faces_webface_112x112/lfw.bin', '/home/bjgbiesseck/datasets/frcsyn_wacv2024/faces_webface_112x112/cfp_fp.bin', '/home/bjgbiesseck/datasets/frcsyn_wacv2024/faces_webface_112x112/agedb_30.bin']
-# config.val_targets = ['bupt']
-# config.val_dataset_dir = ['/nobackup/unico/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
-# config.val_protocol_path = ['/nobackup/unico/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
-
-# # diolkos
-# config.val_dataset_dir = ['/nobackup/unico/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
-# config.val_protocol_path = ['/nobackup/unico/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
-
-# # daugman
-# config.val_dataset_dir = ['/home/bjgbiesseck/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
-# config.val_protocol_path = ['/home/daugman_groups/unico/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
 
 
 
