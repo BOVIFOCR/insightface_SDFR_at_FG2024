@@ -150,7 +150,6 @@ class CASIAWebFace_loader(Dataset):
 
 
 
-
 # if __name__ == '__main__':
 #     # root_dir = '/datasets2/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/imgs_crops_112x112'
 #     # root_dir = '/nobackup/unico/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/imgs_crops_112x112'
@@ -158,10 +157,17 @@ class CASIAWebFace_loader(Dataset):
 #     print('Loading casia paths...')
 #     transform=None
 #     train_set = CASIAWebFace_loader(root_dir, transform, None)
-
+#
+#     min_subj_idx, max_subj_idx = 0, 0
+#     for i, sample in enumerate(train_set.final_samples_list):
+#         if sample[2] < min_subj_idx: min_subj_idx = sample[2]
+#         if sample[2] > max_subj_idx: max_subj_idx = sample[2]
+#         print(f'{i} - {sample} - min_subj_idx: {min_subj_idx} - max_subj_idx: {max_subj_idx}')
+#
 #     # cls_num_list = train_set.get_cls_num_list()
 #     # print('cls_num_list:', cls_num_list)
 #     # print('len(cls_num_list):', len(cls_num_list))
+
 
 if __name__ == '__main__':
     import dcface_loader
