@@ -24,13 +24,13 @@ config.verbose = 2000
 config.dali = False
 
 
-# config.loss = 'CombinedMarginLoss'   # default
-config.loss = 'LDAMLoss'
+config.loss = 'CombinedMarginLoss'   # default
+# config.loss = 'LDAMLoss'
 # config.loss = 'FocalLoss'
 
-# config.train_rule = None             # default
+config.train_rule = None             # default
 # config.train_rule = 'Resample'
-config.train_rule = 'Reweight'
+# config.train_rule = 'Reweight'
 # config.train_rule = 'DRW'
 
 
@@ -46,7 +46,7 @@ if uname.nodename == 'duo':
     config.val_dataset_dir = ['/datasets2/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
     config.val_protocol_path = ['/datasets2/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
 
-if uname.nodename == 'diolkos':
+elif uname.nodename == 'diolkos':
     config.rec = '/nobackup/unico/frcsyn_wacv2024/datasets/real/1_CASIA-WebFace/imgs_crops_112x112'   # diolkos
 
     config.val_targets = ['/home/bjgbiesseck/datasets/frcsyn_wacv2024/faces_webface_112x112/lfw.bin', '/home/bjgbiesseck/datasets/frcsyn_wacv2024/faces_webface_112x112/cfp_fp.bin', '/home/bjgbiesseck/datasets/frcsyn_wacv2024/faces_webface_112x112/agedb_30.bin', 'bupt']
