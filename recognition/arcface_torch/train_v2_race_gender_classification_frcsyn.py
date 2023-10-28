@@ -265,7 +265,8 @@ def main(args):
                 callback_logging(global_step, loss_discrim_am, epoch, cfg.fp16, lr_scheduler.get_last_lr()[0], amp)  # Bernardo
                 callback_logging(global_step, loss_total_am, epoch, cfg.fp16, lr_scheduler.get_last_lr()[0], amp)    # Bernardo
 
-                if global_step % cfg.verbose == 0 and global_step > 0:
+                # if global_step % cfg.verbose == 0 and global_step > 0:
+                if global_step % cfg.verbose == 0:
                     callback_verification(global_step, backbone)
 
         if cfg.save_all_states:
