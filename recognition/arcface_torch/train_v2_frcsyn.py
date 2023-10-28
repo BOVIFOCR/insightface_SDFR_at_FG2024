@@ -109,19 +109,39 @@ def main(args):
     backbone._set_static_graph()
 
 
+    if hasattr(cfg, 'train_rule'):
+        if cfg.train_rule == 'Reweight':
+            cls_num_list = train_loader.dataset.get_cls_num_list()
 
-    cls_num_list = train_loader.dataset.get_cls_num_list()
-    if cfg.train_rule == 'Reweight':
-        train_sampler = None
-        beta = 0.9999
-        effective_num = 1.0 - np.power(beta, cls_num_list)
-        per_cls_weights = (1.0 - beta) / np.array(effective_num)
-        per_cls_weights = per_cls_weights / np.sum(per_cls_weights) * len(cls_num_list)
-        per_cls_weights = torch.FloatTensor(per_cls_weights).cuda()
+            train_sampler = None
+            beta = 0.9999
+            effective_num = 1.0 - np.power(beta, cls_num_list)
+            per_cls_weights = (1.0 - beta) / np.array(effective_num)
+            per_cls_weights = per_cls_weights / np.sum(per_cls_weights) * len(cls_num_list)
+            per_cls_weights = torch.FloatTensor(per_cls_weights).cuda()
 
 
+    if hasattr(cfg, 'loss'):
+        if cfg.loss == 'CombinedMarginLoss':
+            margin_loss = CombinedMarginLoss(
+                64,
+                cfg.margin_list[0],
+                cfg.margin_list[1],
+                cfg.margin_list[2],
+                cfg.interclass_filtering_threshold
+            )
+            module_partial_fc = PartialFC_V2(
+                margin_loss, cfg.embedding_size, cfg.num_classes,
+                cfg.sample_rate, cfg.fp16)
+            module_partial_fc.train().cuda()
 
-    if cfg.loss == 'CombinedMarginLoss':
+        elif cfg.loss == 'LDAMLoss':
+            margin_loss = LDAMLoss(cls_num_list=cls_num_list, max_m=0.5, s=64, weight=per_cls_weights, \
+                                num_classes=cfg.num_classes, embedding_size=cfg.embedding_size)
+            module_partial_fc = margin_loss
+            module_partial_fc.train().cuda()
+        
+    else:
         margin_loss = CombinedMarginLoss(
             64,
             cfg.margin_list[0],
@@ -132,12 +152,6 @@ def main(args):
         module_partial_fc = PartialFC_V2(
             margin_loss, cfg.embedding_size, cfg.num_classes,
             cfg.sample_rate, cfg.fp16)
-        module_partial_fc.train().cuda()
-
-    elif cfg.loss == 'LDAMLoss':
-        margin_loss = LDAMLoss(cls_num_list=cls_num_list, max_m=0.5, s=64, weight=per_cls_weights, \
-                               num_classes=cfg.num_classes, embedding_size=cfg.embedding_size)
-        module_partial_fc = margin_loss
         module_partial_fc.train().cuda()
 
 

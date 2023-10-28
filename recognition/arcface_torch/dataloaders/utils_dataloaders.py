@@ -35,13 +35,23 @@ def find_files(directory, extension, sort=True):
     return matching_files
 
 
-def merge_dicts(dict1, dict2):
+def merge_dicts(dict1, dict2, stride=0):
     if not dict1 is None and not dict2 is None:
         keys1 = list(dict1.keys())
         for key2 in dict2.keys():
             if not key2 in keys1:
-                dict1[key2] = dict2[key2]
+                dict1[key2] = dict2[key2] + stride
     return dict1
+
+
+def get_min_max_value_dict(dict):
+    min_val, max_val = 0, 0
+    for i, key in enumerate(list(dict.keys())):
+        if dict[key] < min_val:
+            min_val = dict[key]
+        elif dict[key] > max_val:
+            max_val = dict[key]
+    return min_val, max_val
 
 
 '''

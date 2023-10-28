@@ -211,6 +211,11 @@ def main(args):
                 img, local_labels = train_batch
             elif len(train_batch) == 4:
                 img, local_labels, race_labels, gender_labels = train_batch
+                # print('img:', img)
+                print('local_labels:', local_labels)
+                print('race_labels:', race_labels)
+                print('gender_labels:', gender_labels)
+                sys.exit(0)
 
             global_step += 1
             alfa = cfg.alfa_discrim

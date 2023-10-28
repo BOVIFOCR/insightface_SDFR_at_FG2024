@@ -82,7 +82,7 @@ class CallBackVerification(object):
                 self.ver_name_list.append(name)
                 j += 1
 
-            else:
+            elif name != '':
                 if os.path.isfile(name):
                     path = name
                 else:
