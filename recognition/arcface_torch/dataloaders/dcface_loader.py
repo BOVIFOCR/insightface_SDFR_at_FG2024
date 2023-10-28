@@ -29,6 +29,9 @@ class DCFace_loader(Dataset):
         # else:
         #     self.imgidx = np.array(list(self.imgrec.keys))
 
+        if not os.path.exists(root_dir):
+            raise Exception(f'Dataset path does not exists: \'{root_dir}\'')
+
         self.root_dir = root_dir
         self.file_ext = '.jpg'
         self.path_files = ud.find_files(self.root_dir, self.file_ext)
@@ -36,7 +39,7 @@ class DCFace_loader(Dataset):
         self.subjs_list, self.subjs_dict, self.races_dict, self.genders_dict = self.get_subj_race_gender_dicts(self.path_files)
 
         self.samples_list = self.make_samples_list_with_labels(self.path_files, self.subjs_list, self.subjs_dict, self.races_dict, self.genders_dict)
-        assert len(self.path_files) == len(self.samples_list), 'Error, len(self.path_files) must be equals to len(self.samples_list)'
+        assert len(self.path_files) == len(self.samples_list), f'Error, len(self.path_files) ({len(self.path_files)}) must be equals to len(self.samples_list) ({len(self.samples_list)})'
         # print('self.samples_list', self.samples_list)
         # print('len(self.samples_list)', len(self.samples_list))
 
@@ -146,8 +149,8 @@ class DCFace_loader(Dataset):
 
 
     def __len__(self):
-        # return len(self.imgidx)       # original
-        return len(self.samples_list)   # Bernardo
+        # return len(self.imgidx)            # original
+        return len(self.final_samples_list)  # Bernardo
 
 
     def get_cls_num_list(self):
@@ -161,10 +164,10 @@ class DCFace_loader(Dataset):
 # if __name__ == '__main__':
 #     # root_dir = '/nobackup/unico/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized'
 #     root_dir = '/home/bjgbiesseck/datasets/synthetic/DCFace/dcface_wacv/organized'
-#     print('Loading paths...')
+#     print('Loading dcface paths...')
 #     transform=None
 #     train_set = DCFace_loader(root_dir, transform, None)
-
+#
 #     min_subj_idx, max_subj_idx = 0, 0
 #     for i, sample in enumerate(train_set.final_samples_list):
 #         if sample[2] < min_subj_idx: min_subj_idx = sample[2]

@@ -29,6 +29,9 @@ class CASIAWebFace_loader(Dataset):
         # else:
         #     self.imgidx = np.array(list(self.imgrec.keys))
 
+        if not os.path.exists(root_dir):
+            raise Exception(f'Dataset path does not exists: \'{root_dir}\'')
+
         self.root_dir = root_dir
         self.file_ext = '.png'
         self.path_files = ud.find_files(self.root_dir, self.file_ext)
@@ -138,8 +141,8 @@ class CASIAWebFace_loader(Dataset):
 
 
     def __len__(self):
-        # return len(self.imgidx)       # original
-        return len(self.samples_list)   # Bernardo
+        # return len(self.imgidx)            # original
+        return len(self.final_samples_list)  # Bernardo
 
 
     def get_cls_num_list(self):
