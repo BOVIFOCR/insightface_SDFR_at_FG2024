@@ -12,8 +12,8 @@ config.network = "r100"
 config.network_discrim = "r18_1x512"
 # config.network_discrim = "r18"
 
-config.alfa_discrim = 0.25
-# config.alfa_discrim = 0.5
+# config.alfa_discrim = 0.25
+config.alfa_discrim = 0.5
 # config.alfa_discrim = 0.75
 
 config.resume = False
@@ -24,8 +24,8 @@ config.sample_rate = 1.0
 config.fp16 = True
 config.momentum = 0.9
 config.weight_decay = 5e-4
-config.batch_size = 128
-# config.batch_size = 256
+# config.batch_size = 128
+config.batch_size = 256
 # config.batch_size = 64
 config.lr = 0.1
 config.verbose = 2000
@@ -69,12 +69,12 @@ else:
 
 
 # config.num_classes = 85742
-config.num_classes = 20572
+config.num_classes = 20572    # 10572 + 10000
 
 config.num_classes_races = 5
 
 # config.num_image = 5822653
-config.num_image = 1040623
+config.num_image = 1040623    # 490623 + 550000
 
 # config.num_epoch = 20
 config.num_epoch = 30

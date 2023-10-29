@@ -211,24 +211,25 @@ def main(args):
                 img, local_labels = train_batch
             elif len(train_batch) == 4:
                 img, local_labels, race_labels, gender_labels = train_batch
-                # print('img:', img)
-                print('local_labels:', local_labels)
-                print('race_labels:', race_labels)
-                print('gender_labels:', gender_labels)
-                sys.exit(0)
 
             global_step += 1
             alfa = cfg.alfa_discrim
 
             local_embeddings = backbone(img)
-            # local_embeddings_normalized = torch.unsqueeze(torch.nn.functional.normalize(local_embeddings, dim=1), 1).detach()
+
+            # undesired_indices = (race_labels != -1).nonzero().squeeze()   # because the dataset Casia-Webface doesn't have race and gender labels
             local_embeddings_normalized = torch.unsqueeze(torch.nn.functional.normalize(local_embeddings, dim=1), 1)
+            # local_embeddings_normalized = local_embeddings_normalized[undesired_indices]
+            # race_labels = race_labels[undesired_indices]
+            # gender_labels = gender_labels[undesired_indices]
             discrim_embeddings = backbone_discrim(local_embeddings_normalized)
+            # print('discrim_embeddings.size():', discrim_embeddings.size())
+            # print('race_labels.size():', race_labels.size())
 
             loss_id: torch.Tensor = module_partial_fc(local_embeddings, local_labels)
             loss_discrim: torch.Tensor = module_partial_fc_discrim(discrim_embeddings, race_labels)
             # loss_total: torch.Tensor = loss_id - (alfa * loss_discrim)   # adversarial learning
-            loss_total: torch.Tensor = loss_id + (alfa * loss_discrim)
+            loss_total: torch.Tensor = loss_id + (alfa * loss_discrim)     # collaborative learning
 
             if cfg.fp16:
                 # amp.scale(loss_id).backward()
