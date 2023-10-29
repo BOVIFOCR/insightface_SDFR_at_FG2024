@@ -446,17 +446,20 @@ def calculate_roc_analyze_races(args, thresholds,
         for threshold_idx, threshold in enumerate(thresholds):
             tprs[fold_idx, threshold_idx], fprs[fold_idx, threshold_idx], _ = calculate_accuracy_analyze_races(
                 args, threshold, dist[test_set], actual_issame[test_set], races_list=None, subj_list=None, races_combs=None)
-        _, _, accuracy[fold_idx], metrics_races[fold_idx] = calculate_accuracy_analyze_races(
-            args, thresholds[best_threshold_index], dist[test_set],
-            actual_issame[test_set], races_list[test_set], subj_list[test_set], races_combs=races_combs)
+        
+        if not races_list is None and not subj_list is None:
+            _, _, accuracy[fold_idx], metrics_races[fold_idx] = calculate_accuracy_analyze_races(
+                args, thresholds[best_threshold_index], dist[test_set],
+                actual_issame[test_set], races_list[test_set], subj_list[test_set], races_combs=races_combs)
+        else:
+            _, _, accuracy[fold_idx] = calculate_accuracy_analyze_races(
+                args, thresholds[best_threshold_index], dist[test_set],
+                actual_issame[test_set], races_list=None, subj_list=None, races_combs=races_combs)
 
-    avg_roc_metrics = get_avg_roc_metrics_races(metrics_races, races_combs)
-    # for i, race_comb in enumerate(races_combs):
-    #     print(f'avg_roc_metrics[{race_comb}][\'acc_mean\']:', avg_roc_metrics[race_comb]['acc_mean'], '+-', avg_roc_metrics[race_comb]['acc_std'])
-    #     print(f'avg_roc_metrics[{race_comb}][\'tpr_mean\']:', avg_roc_metrics[race_comb]['tpr_mean'], '+-', avg_roc_metrics[race_comb]['tpr_std'])
-    #     print(f'avg_roc_metrics[{race_comb}][\'fpr_mean\']:', avg_roc_metrics[race_comb]['fpr_mean'], '+-', avg_roc_metrics[race_comb]['fpr_std'])
-    # sys.exit(0)
-
+    avg_roc_metrics = None
+    if not races_list is None and not subj_list is None:
+        avg_roc_metrics = get_avg_roc_metrics_races(metrics_races, races_combs)
+    
     tpr = np.mean(tprs, 0)
     fpr = np.mean(fprs, 0)
     return tpr, fpr, accuracy, avg_roc_metrics
@@ -619,10 +622,16 @@ def calculate_val_analyze_races(args, thresholds,
         else:
             threshold = 0.0
 
-        val[fold_idx], far[fold_idx], metrics_races[fold_idx] = calculate_val_far_analyze_races(
-            args, threshold, dist[test_set], actual_issame[test_set], races_list[test_set], subj_list[test_set], races_combs=races_combs)
+        if not races_list is None and not subj_list is None:
+            val[fold_idx], far[fold_idx], metrics_races[fold_idx] = calculate_val_far_analyze_races(
+                args, threshold, dist[test_set], actual_issame[test_set], races_list[test_set], subj_list[test_set], races_combs=races_combs)
+        else:
+            val[fold_idx], far[fold_idx] = calculate_val_far_analyze_races(
+                args, threshold, dist[test_set], actual_issame[test_set], races_list=None, subj_list=None, races_combs=races_combs)
 
-    avg_val_metrics = get_avg_val_metrics_races(metrics_races, races_combs)
+    avg_val_metrics = None
+    if not races_list is None and not subj_list is None:
+        avg_val_metrics = get_avg_val_metrics_races(metrics_races, races_combs)
 
     val_mean = np.mean(val)
     far_mean = np.mean(far)
@@ -848,8 +857,11 @@ def evaluate_analyze_races(args, embeddings, actual_issame, races_list, subj_lis
 def test_analyze_races(args, data_set, backbone, batch_size, nfolds=10, races_combs=[]):
     data_list = data_set[0]
     issame_list = data_set[1]
-    races_list = data_set[2]
-    subj_list = data_set[3]
+    if len(data_set) > 2:
+        races_list = data_set[2]
+        subj_list = data_set[3]
+    else:
+        races_list, subj_list = None, None
 
     path_embeddings = os.path.join(args.data_dir, 'embeddings_list.pkl')
 
@@ -1079,37 +1091,41 @@ if __name__ == '__main__':
         for i in range(len(ver_list)):
             results = []
             for model in nets:
+
                 if name.lower() == 'bupt':
                     races_combs = get_races_combinations()
+                else:
+                    races_combs = None
 
-                    acc1, std1, acc2, std2, xnorm, embeddings_list, val, val_std, far, fnmr_mean, fnmr_std, fmr_mean, avg_roc_metrics, avg_val_metrics, \
-                         best_acc, best_thresh, acc_at_thresh = test_analyze_races(args, ver_list[i], model, args.batch_size, args.nfolds, races_combs)
-                    print('[%s]XNorm: %f' % (ver_name_list[i], xnorm))
-                    # print('[%s]Accuracy: %1.5f+-%1.5f' % (ver_name_list[i], acc1, std1))
-                    print('[%s]Accuracy-Flip: %1.5f+-%1.5f' % (ver_name_list[i], acc2, std2))
-                    print('[%s]TAR: %1.5f+-%1.5f    FAR: %1.5f' % (ver_name_list[i], val, val_std, far))
-                    
-                    for fmr_target in list(fnmr_mean.keys()):
-                        print('[%s]FNMR: %1.5f+-%1.5f   FMR: %1.5f' % (ver_name_list[i], fnmr_mean[fmr_target], fnmr_std[fmr_target], fmr_target))
+                acc1, std1, acc2, std2, xnorm, embeddings_list, val, val_std, far, fnmr_mean, fnmr_std, fmr_mean, avg_roc_metrics, avg_val_metrics, \
+                        best_acc, best_thresh, acc_at_thresh = test_analyze_races(args, ver_list[i], model, args.batch_size, args.nfolds, races_combs)
+                results.append(acc2)
+                print('[%s]XNorm: %f' % (ver_name_list[i], xnorm))
+                # print('[%s]Accuracy: %1.5f+-%1.5f' % (ver_name_list[i], acc1, std1))
+                print('[%s]Accuracy-Flip: %1.5f+-%1.5f' % (ver_name_list[i], acc2, std2))
+                print('[%s]TAR: %1.5f+-%1.5f    FAR: %1.5f' % (ver_name_list[i], val, val_std, far))
 
+                for fmr_target in list(fnmr_mean.keys()):
+                    print('[%s]FNMR: %1.5f+-%1.5f   FMR: %1.5f' % (ver_name_list[i], fnmr_mean[fmr_target], fnmr_std[fmr_target], fmr_target))
+
+                if not races_combs is None:
                     for race_comb in races_combs:
                         race_comb_str = str((race_comb[0][:5], race_comb[1][:5]))
                         print('[%s]Acc %s: %1.5f+-%1.5f' % (ver_name_list[i], race_comb_str, avg_roc_metrics[race_comb]['acc_mean'], avg_roc_metrics[race_comb]['acc_std']), end='    ')
                         print('[%s]TAR %s: %1.5f+-%1.5f' % (ver_name_list[i], race_comb_str, avg_val_metrics[race_comb]['val_mean'], avg_val_metrics[race_comb]['val_std']), end='    ')
                         print('[%s]FAR %s: %1.5f+-%1.5f' % (ver_name_list[i], race_comb_str, avg_val_metrics[race_comb]['far_mean'], avg_val_metrics[race_comb]['far_std']))
-                    results.append(acc2)
 
-                    print('[%s]Best Acc: %1.5f    @best_thresh: %1.5f' % (ver_name_list[i], best_acc, best_thresh))
-                    if not acc_at_thresh is None:
-                        print('[%s]Accuracy: %1.5f    @thresh: %1.5f' % (ver_name_list[i], acc_at_thresh, args.save_scores_at_thresh))
+                print('[%s]Best Acc: %1.5f    @best_thresh: %1.5f' % (ver_name_list[i], best_acc, best_thresh))
+                if not acc_at_thresh is None:
+                    print('[%s]Accuracy: %1.5f    @thresh: %1.5f' % (ver_name_list[i], acc_at_thresh, args.save_scores_at_thresh))
 
-                else:
-                    acc1, std1, acc2, std2, xnorm, embeddings_list = test(
-                        ver_list[i], model, args.batch_size, args.nfolds)
-                    print('[%s]XNorm: %f' % (ver_name_list[i], xnorm))
-                    print('[%s]Accuracy: %1.5f+-%1.5f' % (ver_name_list[i], acc1, std1))
-                    print('[%s]Accuracy-Flip: %1.5f+-%1.5f' % (ver_name_list[i], acc2, std2))
-                    results.append(acc2)
+                # else:
+                    # acc1, std1, acc2, std2, xnorm, embeddings_list = test(
+                    #     ver_list[i], model, args.batch_size, args.nfolds)
+                    # print('[%s]XNorm: %f' % (ver_name_list[i], xnorm))
+                    # print('[%s]Accuracy: %1.5f+-%1.5f' % (ver_name_list[i], acc1, std1))
+                    # print('[%s]Accuracy-Flip: %1.5f+-%1.5f' % (ver_name_list[i], acc2, std2))
+                    # results.append(acc2)
 
             # print('Max of [%s] is %1.5f' % (ver_name_list[i], np.max(results)))
     elif args.mode == 1:
