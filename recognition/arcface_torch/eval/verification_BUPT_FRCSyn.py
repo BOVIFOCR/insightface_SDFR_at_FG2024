@@ -842,7 +842,7 @@ def evaluate_analyze_races(args, embeddings, actual_issame, races_list, subj_lis
                                                         subj_list,
                                                         races_combs=races_combs)
 
-        file_scores_labels = f'frcsyn_scores_labels_thresh={one_threshold}.txt'
+        file_scores_labels = args.model.split('/')[-1].split('.')[0] + '_target=' + args.target.split('/')[-1].split('.')[0] + f'_frcsyn_scores_labels_thresh={one_threshold}.txt'
         path_file_scores_labels = os.path.join(os.path.dirname(args.model), file_scores_labels)
         print(f'    Saving scores and pred labels at \'{path_file_scores_labels}\'...')
         save_scores_pred_labels_frcsyn_format(path_file_scores_labels, dist, pred_labels_at_thresh)
