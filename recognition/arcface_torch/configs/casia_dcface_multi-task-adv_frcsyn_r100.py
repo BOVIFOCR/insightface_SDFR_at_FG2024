@@ -12,9 +12,10 @@ config.network = "r100"
 config.network_discrim = "r18_1x512"
 # config.network_discrim = "r18"
 
-# config.alfa_discrim = 0.25
-config.alfa_discrim = 0.5
+config.alfa_discrim = 0.25
+# config.alfa_discrim = 0.5
 # config.alfa_discrim = 0.75
+# config.alfa_discrim = 1.5
 
 config.resume = False
 config.output = None
