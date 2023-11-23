@@ -1,3 +1,14 @@
+## Inference
+
+#### 1. Clone this repo:
+- `git clone https://github.com/BOVIFOCR/insightface.git`
+- `cd insightface/recognition/arcface_torch` 
+
+#### 2. Create conda env and install python libs:
+- `conda create -n insightface python=3.7`
+- `conda activate insightface`
+- `pip install -r requirements.txt`
+
 # Distributed Arcface Training in Pytorch
 
 The "arcface_torch" repository is the official implementation of the ArcFace algorithm. It supports distributed and sparse training with multiple distributed training examples, including several memory-saving techniques such as mixed precision training and gradient checkpointing. It also supports training for ViT models and datasets including WebFace42M and Glint360K, two of the largest open-source datasets. Additionally, the repository comes with a built-in tool for converting to ONNX format, making it easy to submit to MFR evaluation systems.
