@@ -12,7 +12,8 @@
 #### 3. Download pre-trained model:
 - [OneDrive](https://1drv.ms/u/s!AswpsDO2toNKq0lWY69vN58GR6mw?e=p9Ov5d)
 <div><img src="https://github.com/BOVIFOCR/insightface/blob/master/recognition/arcface_torch/download_trained_model.png" width = "50%" /></div>
-- Save and extract the file `ms1mv3_arcface_r100_fp16.zip` in folder `trained_models`
+
+- Extract the file `ms1mv3_arcface_r100_fp16.zip` in folder `trained_models`
 
 
 # Distributed Arcface Training in Pytorch
