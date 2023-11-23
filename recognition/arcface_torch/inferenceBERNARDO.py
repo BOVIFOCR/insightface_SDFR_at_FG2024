@@ -40,8 +40,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='PyTorch ArcFace Training')
     parser.add_argument('--network', type=str, default='r100', help='backbone network')
     parser.add_argument('--weight', type=str, default='./trained_models/ms1mv3_arcface_r100_fp16/backbone.pth')
-    parser.add_argument('--img1', type=str, default=None)
-    parser.add_argument('--img2', type=str, default=None)
+    parser.add_argument('--img1', type=str, default='Aaron_Peirsol_0001.png')
+    parser.add_argument('--img2', type=str, default='Aaron_Peirsol_0002.png')
     parser.add_argument('--thresh', type=float, default=0.5)
     args = parser.parse_args()
 
