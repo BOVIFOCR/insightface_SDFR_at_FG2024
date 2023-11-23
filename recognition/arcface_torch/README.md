@@ -7,6 +7,9 @@
 #### 2. Create conda env and install python libs:
 - `conda create -n insightface python=3.7`
 - `conda activate insightface`
+- `conda env config vars set CUDA_HOME="/usr/local/cuda"; conda deactivate; conda activate insightface`
+- `conda env config vars set LD_LIBRARY_PATH="$CUDA_HOME/lib64"; conda deactivate; conda activate insightface`
+- `conda env config vars set PATH="$CUDA_HOME:$CUDA_HOME/bin:$LD_LIBRARY_PATH:$PATH"; conda deactivate; conda activate insightface`
 - `pip3 install -r requirements.txt`
 
 #### 3. Download pre-trained model:
