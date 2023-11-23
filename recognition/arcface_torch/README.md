@@ -9,6 +9,12 @@
 - `conda activate insightface`
 - `pip3 install -r requirements.txt`
 
+#### 3. Download pre-trained model:
+- [OneDrive](https://1drv.ms/u/s!AswpsDO2toNKq0lWY69vN58GR6mw?e=p9Ov5d)
+<div><img src="https://github.com/BOVIFOCR/insightface/blob/master/recognition/arcface_torch/download_trained_model.png" width = "50%" /></div>
+- Save and extract the file `ms1mv3_arcface_r100_fp16.zip` in folder `trained_models`
+
+
 # Distributed Arcface Training in Pytorch
 
 The "arcface_torch" repository is the official implementation of the ArcFace algorithm. It supports distributed and sparse training with multiple distributed training examples, including several memory-saving techniques such as mixed precision training and gradient checkpointing. It also supports training for ViT models and datasets including WebFace42M and Glint360K, two of the largest open-source datasets. Additionally, the repository comes with a built-in tool for converting to ONNX format, making it easy to submit to MFR evaluation systems.
