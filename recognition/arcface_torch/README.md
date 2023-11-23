@@ -1,4 +1,4 @@
-## Inference
+## INFERENCE WITH PRE-TRAINED MODELS (BOVIFOCR)
 
 #### 1. Clone this repo:
 - `git clone https://github.com/BOVIFOCR/insightface.git`
@@ -14,6 +14,20 @@
 <div><img src="https://github.com/BOVIFOCR/insightface/blob/master/recognition/arcface_torch/download_trained_model.png" width = "50%" /></div>
 
 - Extract the file `ms1mv3_arcface_r100_fp16.zip` in folder `trained_models`
+
+#### 4. Compute cosine similarity between 2 face images:
+- `export CUDA_VISIBLE_DEVICES=0; python inferenceBERNARDO.py --network r100 --weight trained_models/ms1mv3_arcface_r100_fp16/backbone.pth --img1 Aaron_Peirsol_0001.png --img2 Aaron_Peirsol_0002.png`
+
+The output should be:
+```
+Loading trained model (r100): trained_models/ms1mv3_arcface_r100_fp16/backbone.pth
+Loading and normalizing images Aaron_Peirsol_0001.png, Aaron_Peirsol_0002.png
+Computing face embeddings
+Computing cosine similarity (0: lowest, 1: highest)
+Cosine similarity: 0.8078490495681763
+    SAME PERSON
+```
+
 
 
 # Distributed Arcface Training in Pytorch
