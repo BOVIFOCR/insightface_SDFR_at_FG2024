@@ -8,6 +8,8 @@ from backbones import get_model
 
 
 def cosine_similarity(embedd1, embedd2):
+    embedd1[0] /= np.linalg.norm(embedd1[0])
+    embedd2[0] /= np.linalg.norm(embedd2[0])
     sim = float(np.maximum(np.dot(embedd1[0],embedd2[0])/(np.linalg.norm(embedd1[0])*np.linalg.norm(embedd2[0])), 0.0))
     return sim
 
