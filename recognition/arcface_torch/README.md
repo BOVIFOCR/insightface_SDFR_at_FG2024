@@ -7,7 +7,7 @@
 #### 2. Create conda env and install python libs:
 - `conda create -n insightface python=3.7`
 - `conda activate insightface`
-- `pip install -r requirements.txt`
+- `pip3 install -r requirements.txt`
 
 # Distributed Arcface Training in Pytorch
 
