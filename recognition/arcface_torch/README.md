@@ -15,7 +15,7 @@
 
 - Extract the file `ms1mv3_arcface_r100_fp16.zip` in folder `trained_models`
 
-#### 4. Compute cosine similarity between 2 face images:
+#### 4. Compute cosine similarity between 2 detected, aligned and cropped face images:
 <div><img src="https://github.com/BOVIFOCR/insightface/blob/master/recognition/arcface_torch/Aaron_Peirsol_pair.png" width = "40%" /></div>
 
 - `export CUDA_VISIBLE_DEVICES=0; python inferenceBERNARDO.py --network r100 --weight trained_models/ms1mv3_arcface_r100_fp16/backbone.pth --img1 Aaron_Peirsol_0001.png --img2 Aaron_Peirsol_0002.png`
@@ -30,6 +30,7 @@ Cosine similarity: 0.8078490495681763
     SAME PERSON
 ```
 
+<br> <br> <br> 
 
 
 # Distributed Arcface Training in Pytorch
