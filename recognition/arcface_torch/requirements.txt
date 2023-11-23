@@ -63,8 +63,6 @@ pathtools==0.1.2
 pickleshare==0.7.5
 Pillow==9.2.0
 platformdirs==3.2.0
-pointnet2-cuda==0.0.0
-pointops==0.0.0
 pooch==1.7.0
 prettytable==3.7.0
 protobuf==3.19.4
@@ -105,7 +103,6 @@ threadpoolctl==3.1.0
 tifffile==2021.11.2
 torch==1.10.1
 torch-scatter==2.1.1
-torchaudio==0.12.1+cu116
 torchvision==0.11.2
 tqdm==4.62.3
 typing_extensions==4.5.0
