@@ -105,4 +105,5 @@ ENV/
 # Bernardo
 wandb/*
 work_dirs/*
+trained_models/*
 
