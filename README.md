@@ -1,4 +1,4 @@
-## INFERENCE WITH PRE-TRAINED MODELS (BOVIFOCR)
+## CONFIG ENVIRONMENT (BOVIFOCR)
 
 #### 1. Clone this repo:
 ```
@@ -22,13 +22,21 @@ conda install -y pytorch3d -c pytorch3d
 pip3 install -r requirements.txt
 ```
 
-#### 3. Download pre-trained model:
+#### 3. Train model:
+```
+export CUDA_VISIBLE_DEVICES=0; python train_v2.py configs/synthetic_r50.py
+```
+<br> <br> <br>
+
+# Inference with pre-trained models
+
+#### 1. Download pre-trained model:
 - [OneDrive](https://1drv.ms/u/s!AswpsDO2toNKq0lWY69vN58GR6mw?e=p9Ov5d)
 <div><img src="https://github.com/BOVIFOCR/insightface/blob/master/recognition/arcface_torch/download_trained_model.png" width = "50%" /></div>
 
 - Extract the file `ms1mv3_arcface_r100_fp16.zip` in folder `trained_models`
 
-#### 4. Compute cosine similarity between 2 detected, aligned and cropped face images:
+#### 2. Compute cosine similarity between 2 detected, aligned and cropped face images:
 <div><img src="https://github.com/BOVIFOCR/insightface/blob/master/recognition/arcface_torch/Aaron_Peirsol_pair.png" width = "40%" /></div>
 
 - `export CUDA_VISIBLE_DEVICES=0; python inferenceBERNARDO.py --network r100 --weight trained_models/ms1mv3_arcface_r100_fp16/backbone.pth --img1 Aaron_Peirsol_0001.png --img2 Aaron_Peirsol_0002.png`
