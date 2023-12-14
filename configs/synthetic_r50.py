@@ -26,3 +26,21 @@ config.num_image = 5179510
 config.num_epoch = 20
 config.warmup_epoch = 0
 config.val_targets = ['lfw', 'cfp_fp', "agedb_30"]
+
+
+# WandB Logger
+config.wandb_key = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+config.suffix_run_name = None
+
+config.using_wandb = False
+# config.using_wandb = True
+
+config.wandb_entity = "entity"
+config.wandb_project = "R50_SyntheticDataset"
+config.wandb_log_all = True
+
+# config.save_artifacts = False
+config.save_artifacts = True
+
+config.wandb_resume = False # resume wandb run: Only if the you wand t resume the last run that it was interrupted
+config.notes = ''

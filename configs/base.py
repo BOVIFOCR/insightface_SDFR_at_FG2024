@@ -52,23 +52,18 @@ config.num_workers = 6
 
 
 # WandB Logger
-# config.wandb_key = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-config.wandb_key = "d7664714c72bd594a957381812da450279f80f66"
-
+config.wandb_key = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 config.suffix_run_name = None
 
-# config.using_wandb = False
-config.using_wandb = True
+config.using_wandb = False
+# config.using_wandb = True
 
-# config.wandb_entity = "entity"
-config.wandb_entity = "bovifocr"
-
-config.wandb_project = "R100_CASIA-Webface_10500classes_whole_dataset"
+config.wandb_entity = "entity"
+config.wandb_project = "project"
 config.wandb_log_all = True
 
 # config.save_artifacts = False
 config.save_artifacts = True
 
 config.wandb_resume = False # resume wandb run: Only if the you wand t resume the last run that it was interrupted
-
 config.notes = ''
