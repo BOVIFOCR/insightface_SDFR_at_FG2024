@@ -37,7 +37,7 @@ config.train_rule = None             # default
 
 if uname.nodename == 'duo':
     # config.rec = "/train_tmp/faces_emore"
-    config.rec = '/datasets1/bjgbiesseck/SDFR_at_FG2024/datasets/synthetic/DigiFace-1M_500Kimg_100Kids_5imgs-id/images'      # duo
+    config.rec = '/datasets1/bjgbiesseck/SDFR_at_FG2024/datasets/synthetic/DigiFace-1M_720Kimg_10Kids_72imgs-id/images'      # duo
 
     # config.val_targets = ['lfw', 'cfp_fp', "agedb_30"]
     # config.val_targets = ['']
@@ -47,7 +47,7 @@ if uname.nodename == 'duo':
     config.val_protocol_path = ['/datasets2/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
 
 elif uname.nodename == 'diolkos':
-    config.rec = '/nobackup/unico/SDFR_at_FG2024/datasets/synthetic/DigiFace-1M_500Kimg_100Kids_5imgs-id/images'   # diolkos
+    config.rec = '/nobackup/unico/SDFR_at_FG2024/datasets/synthetic/DigiFace-1M_720Kimg_10Kids_72imgs-id/images'   # diolkos
 
     config.val_targets = ['/home/bjgbiesseck/datasets/frcsyn_wacv2024/faces_webface_112x112/lfw.bin', '/home/bjgbiesseck/datasets/frcsyn_wacv2024/faces_webface_112x112/cfp_fp.bin', '/home/bjgbiesseck/datasets/frcsyn_wacv2024/faces_webface_112x112/agedb_30.bin', 'bupt']
     # config.val_targets = ['bupt']
@@ -67,10 +67,10 @@ else:
 
 
 # config.num_classes = 85742
-config.num_classes = 100000
+config.num_classes = 10000
 
 # config.num_image = 5822653
-config.num_image = 500000
+config.num_image = 720000
 
 config.num_epoch = 20
 # config.num_epoch = 30
