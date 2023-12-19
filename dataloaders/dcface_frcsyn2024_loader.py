@@ -12,9 +12,9 @@ except ImportError as e:
     import utils_dataloaders as ud
 
 
-class DCFace_loader(Dataset):
+class DCFaceFRCSYN2024_loader(Dataset):
     def __init__(self, root_dir, transform=None, other_dataset=None):
-        super(DCFace_loader, self).__init__()
+        super(DCFaceFRCSYN2024_loader, self).__init__()
         # self.transform = transform
         # self.root_dir = root_dir
         # self.local_rank = local_rank
@@ -166,7 +166,7 @@ class DCFace_loader(Dataset):
 #     root_dir = '/home/bjgbiesseck/datasets/synthetic/DCFace/dcface_wacv/organized'
 #     print('Loading dcface paths...')
 #     transform=None
-#     train_set = DCFace_loader(root_dir, transform, None)
+#     train_set = DCFaceFRCSYN2024_loader(root_dir, transform, None)
 #
 #     min_subj_idx, max_subj_idx = 0, 0
 #     for i, sample in enumerate(train_set.final_samples_list):
@@ -186,7 +186,7 @@ if __name__ == '__main__':
     root_dir = '/home/bjgbiesseck/datasets/synthetic/DCFace/dcface_wacv/organized'
     print('Loading dcface paths...')
     transform=None
-    train_set = DCFace_loader(root_dir, transform, train_set)
+    train_set = DCFaceFRCSYN2024_loader(root_dir, transform, train_set)
 
     min_subj_idx, max_subj_idx = 0, 0
     for i, sample in enumerate(train_set.final_samples_list):

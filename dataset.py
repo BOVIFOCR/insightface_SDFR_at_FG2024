@@ -3,6 +3,7 @@ import os
 import queue as Queue
 import threading
 from typing import Iterable
+import glob
 
 import mxnet as mx
 import numpy as np
@@ -17,7 +18,9 @@ from utils.utils_distributed_sampler import get_dist_info, worker_init_fn
 
 from dataloaders.casiawebface_loader import CASIAWebFace_loader
 from dataloaders.gandiffface_loader import GANDiffFace_loader
-from dataloaders.dcface_loader import DCFace_loader
+from dataloaders.dcface_frcsyn2024_loader import DCFaceFRCSYN2024_loader
+from dataloaders.dcface_sdfr2024_loader import BaseMXDataset, FaceMXDataset
+from dataloaders.digiface1M_loader import DigiFace1M_loader
 
 
 def get_dataloader(
@@ -35,14 +38,14 @@ def get_dataloader(
                     transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
                     ])
 
-    if type(root_dir) == list:
+    if type(root_dir) is list:
         train_set = None
         for r_dir in root_dir:
             print(f'Loading train dataset \'{r_dir}\' ...')
             if 'CASIA-WebFace'.lower() in r_dir.lower():
                 train_set = CASIAWebFace_loader(r_dir, transform, train_set)
             elif 'DCFace'.lower() in r_dir.lower():
-                train_set = DCFace_loader(r_dir, transform, train_set)
+                train_set = DCFaceFRCSYN2024_loader(r_dir, transform, train_set)
             elif 'GANDiffFace'.lower() in r_dir.lower():
                 train_set = GANDiffFace_loader(r_dir, transform, train_set)
             else:
@@ -77,8 +80,23 @@ def get_dataloader(
                 train_set = GANDiffFace_loader(root_dir, transform)
 
             elif 'DCFace'.lower() in root_dir.lower():
-                print(f'Loading train dataset \'{root_dir}\' ...')
-                train_set = DCFace_loader(root_dir, transform)
+                rec_pattern = os.path.join(root_dir, '*.rec')
+                idx_pattern = os.path.join(root_dir, '*.idx')
+                listtext_pattern = os.path.join(root_dir, '*.txt')
+
+                rec = glob.glob(rec_pattern)
+                idx = glob.glob(idx_pattern)
+                listtext = glob.glob(listtext_pattern)
+                if len(rec) > 0 and len(idx) > 0 and len(listtext) > 0:
+                    rec, idx, listtext = rec[0], idx[0], listtext[0]
+                    print(f'Loading train dataset \'{root_dir}\' from \'.rec\' file...')
+                    # train_set = BaseMXDataset(root_dir, swap_color_order=False, resolution=112)
+                    train_set = FaceMXDataset(root_dir, transform=transform)
+                else:
+                    train_set = DCFaceFRCSYN2024_loader(root_dir, transform)
+            
+            elif 'DigiFace-1M'.lower() in root_dir.lower():
+                train_set = DigiFace1M_loader(root_dir, transform)
 
             else:
                 # train_set = ImageFolder(root_dir, transform)        # original
