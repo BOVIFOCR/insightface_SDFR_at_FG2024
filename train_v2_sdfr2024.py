@@ -15,7 +15,7 @@ from torch import distributed
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 # from utils.utils_callbacks import CallBackLogging, CallBackVerification
-from utils.utils_callbacks_frcsyn import CallBackLogging, CallBackVerification
+from utils.utils_callbacks_sdfr import CallBackLogging, CallBackVerification
 from utils.utils_config import get_config
 from utils.utils_distributed_sampler import setup_seed
 from utils.utils_logging import AverageMeter, init_logging

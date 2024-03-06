@@ -68,29 +68,30 @@ class CallBackVerification(object):
     def init_dataset(self, val_targets, data_dir, image_size, cfg):
         j = 0
         for i, name in enumerate(val_targets):
-            print('\nLoading val dataset:', name)
-            if name.lower() == 'bupt':
-                path_unified_dataset = os.path.join(cfg.val_dataset_dir[j], 'dataset.pkl')
-                if not os.path.exists(path_unified_dataset):
-                    data_set = Loader_BUPT().load_dataset(cfg.val_protocol_path[j], cfg.val_dataset_dir[j], image_size)
-                    print(f'Saving dataset in unified file \'{path_unified_dataset}\' ...')
-                    write_object_to_file(path_unified_dataset, data_set)
-                else:
-                    print(f'Loading dataset from unified file \'{path_unified_dataset}\' ...')
-                    data_set = read_object_from_file(path_unified_dataset)
-                self.ver_list.append(data_set)
-                self.ver_name_list.append(name)
-                j += 1
-
-            elif name != '':
-                if os.path.isfile(name):
-                    path = name
-                else:
-                    path = os.path.join(data_dir, name + ".bin")
-                if os.path.exists(path):
-                    data_set = verification.load_bin(path, image_size)
+            if name != '':
+                print(f'\nLoading val dataset: \'{name}\'')
+                if name.lower() == 'bupt':
+                    path_unified_dataset = os.path.join(cfg.val_dataset_dir[j], 'dataset.pkl')
+                    if not os.path.exists(path_unified_dataset):
+                        data_set = Loader_BUPT().load_dataset(cfg.val_protocol_path[j], cfg.val_dataset_dir[j], image_size)
+                        print(f'Saving dataset in unified file \'{path_unified_dataset}\' ...')
+                        write_object_to_file(path_unified_dataset, data_set)
+                    else:
+                        print(f'Loading dataset from unified file \'{path_unified_dataset}\' ...')
+                        data_set = read_object_from_file(path_unified_dataset)
                     self.ver_list.append(data_set)
                     self.ver_name_list.append(name)
+                    j += 1
+
+                elif name != '':
+                    if os.path.isfile(name):
+                        path = name
+                    else:
+                        path = os.path.join(data_dir, name + ".bin")
+                    if os.path.exists(path):
+                        data_set = verification.load_bin(path, image_size)
+                        self.ver_list.append(data_set)
+                        self.ver_name_list.append(name)
 
     def __call__(self, num_update, backbone: torch.nn.Module):
         if self.rank is 0 and num_update > 0:

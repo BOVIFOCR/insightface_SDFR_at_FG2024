@@ -21,6 +21,7 @@ from dataloaders.gandiffface_loader import GANDiffFace_loader
 from dataloaders.dcface_frcsyn2024_loader import DCFaceFRCSYN2024_loader
 from dataloaders.dcface_sdfr2024_loader import BaseMXDataset, FaceMXDataset
 from dataloaders.digiface1M_loader import DigiFace1M_loader
+from dataloaders.idiffface_loader import IDiffFace_loader
 
 
 def get_dataloader(
@@ -48,6 +49,8 @@ def get_dataloader(
                 train_set = DCFaceFRCSYN2024_loader(r_dir, transform, train_set)
             elif 'GANDiffFace'.lower() in r_dir.lower():
                 train_set = GANDiffFace_loader(r_dir, transform, train_set)
+            elif 'IDiff-Face'.lower() in r_dir.lower():
+                train_set = IDiffFace_loader(r_dir, transform, train_set)
             else:
                 raise Exception(f'Dataset \'{r_dir}\' not identified!')
 
