@@ -13,7 +13,7 @@ except ImportError as e:
 
 
 class IDiffFace_loader(Dataset):
-    def __init__(self, root_dir, transform=None, other_dataset=None):
+    def __init__(self, dataset_name, root_dir, transform=None, other_dataset=None):
         super(IDiffFace_loader, self).__init__()
         # self.transform = transform
         # self.root_dir = root_dir
@@ -36,8 +36,9 @@ class IDiffFace_loader(Dataset):
         # self.file_ext = '.jpg'
         self.file_ext = '.png'
         self.path_files = ud.find_files(self.root_dir, self.file_ext)
-        self.path_files = self.append_dataset_name(self.path_files, dataset_name='idiffface')
+        self.path_files = self.append_dataset_name(self.path_files, dataset_name=dataset_name)
         self.subjs_list, self.subjs_dict = self.get_subj_list_dict(self.path_files)
+        print('    num_classes (this dataset):', len(self.subjs_dict))
 
         self.samples_list = self.make_samples_list_with_labels(self.path_files, self.subjs_list, self.subjs_dict)
         assert len(self.path_files) == len(self.samples_list), f'Error, len(self.path_files) ({len(self.path_files)}) must be equals to len(self.samples_list) ({len(self.samples_list)})'
@@ -52,12 +53,15 @@ class IDiffFace_loader(Dataset):
             # self.races_dict = ud.merge_dicts(self.races_dict, other_dataset.races_dict)
             # self.genders_dict = ud.merge_dicts(self.genders_dict, other_dataset.genders_dict)
             self.samples_list += other_dataset.samples_list
+        # print('self.subjs_dict:', self.subjs_dict)
+        # print('len(self.subjs_dict)', len(self.subjs_dict))
+        print('    num_total_classes (all datasets):', len(self.subjs_dict))        
 
         self.final_samples_list = self.replace_strings_labels_by_int_labels(self.samples_list, self.subjs_dict)
-        random.shuffle(self.final_samples_list)
         # print('self.final_samples_list', self.final_samples_list)
         # print('len(self.final_samples_list)', len(self.final_samples_list))
-
+        random.shuffle(self.final_samples_list)
+        
 
     def append_dataset_name(self, path_files, dataset_name):
         for i in range(len(path_files)):
@@ -67,31 +71,20 @@ class IDiffFace_loader(Dataset):
 
     def get_subj_list_dict(self, path_files):
         subjs_list   = [None] * len(path_files)
-        # genders_list = [None] * len(path_files)
-        # races_list   = [None] * len(path_files)
-        for i, (path_file, dataset_name) in enumerate(path_files):        # '/datasets2/frcsyn_wacv2024/datasets/synthetic/DCFace/dcface_wacv/organized/Asian/Female/34/0.jpg'
-            subjs_list[i] = dataset_name + '_' + path_file.split('/')[-2] # 'dcface_34'
-            # genders_list[i] = path_file.split('/')[-3]                    # 'Female'
-            # races_list[i] = path_file.split('/')[-4]                      # 'Asian'
+        for i, (path_file, dataset_name) in enumerate(path_files):        # ('/datasets1/bjgbiesseck/SDFR_at_FG2024/datasets/synthetic/IDiff-Face_ICCV2023/ca-cpd25-synthetic-uniform-10050/0/0_0.png', 'idiffface_ca-cpd25-synthetic-uniform-10050')
+            subjs_list[i] = dataset_name + '_' + path_file.split('/')[-2] # 'idiffface_ca-cpd25-synthetic-uniform-10050_0'
         subjs_list = sorted(list(set(subjs_list)))
-        # genders_list = sorted(list(set(genders_list)))
-        # races_list = sorted(list(set(races_list)))
-
         subjs_dict = {subj:i for i,subj in enumerate(subjs_list)}
-        # races_dict = {race:i for i,race in enumerate(races_list)}
-        # genders_dict = {gender:i for i,gender in enumerate(genders_list)}
         return subjs_list, subjs_dict
 
 
     def make_samples_list_with_labels(self, path_files, subjs_list, subjs_dict):
         samples_list = [None] * len(path_files)
         subjs_dict_num_samples = {subj:0 for subj in list(subjs_dict.keys())}
-        for i, (path_file, dataset_name) in enumerate(path_files):        # '/datasets1/bjgbiesseck/SDFR_at_FG2024/datasets/synthetic/IDiff-Face_ICCV2023/ca-cpd25-synthetic-uniform-10050/0/0_0.png'
-            subj = dataset_name + '_' + path_file.split('/')[-2]          # 'dcface_34'
-            
+        for i, (path_file, dataset_name) in enumerate(path_files):        # ('/datasets1/bjgbiesseck/SDFR_at_FG2024/datasets/synthetic/IDiff-Face_ICCV2023/ca-cpd25-synthetic-uniform-10050/0/0_0.png', 'idiffface_ca-cpd25-synthetic-uniform-10050')
+            subj = dataset_name + '_' + path_file.split('/')[-2]          # 'idiffface_ca-cpd25-synthetic-uniform-10050_0'
             subjs_dict_num_samples[subj] += 1
             samples_list[i] = (dataset_name, path_file, subj)
-
         return samples_list
 
 
@@ -99,7 +92,7 @@ class IDiffFace_loader(Dataset):
         final_samples_list = [None] * len(samples_list)
         for i in range(len(final_samples_list)):
             # print(f'samples_list[{i}]: {samples_list[i]}')
-            dataset_name, path_file, subj, race, gender = samples_list[i]
+            dataset_name, path_file, subj = samples_list[i]
             subj_idx = subjs_dict[subj] if not subjs_dict is None else -1
             # race_idx = races_dict[race] if not races_dict is None else -1
             # gender_idx = genders_dict[gender] if not genders_dict is None else -1

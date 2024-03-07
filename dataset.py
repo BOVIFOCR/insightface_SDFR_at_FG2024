@@ -1,5 +1,5 @@
 import numbers
-import os
+import os, sys
 import queue as Queue
 import threading
 from typing import Iterable
@@ -50,7 +50,8 @@ def get_dataloader(
             elif 'GANDiffFace'.lower() in r_dir.lower():
                 train_set = GANDiffFace_loader(r_dir, transform, train_set)
             elif 'IDiff-Face'.lower() in r_dir.lower():
-                train_set = IDiffFace_loader(r_dir, transform, train_set)
+                dataset_name = 'idiffface_' + r_dir.split('/')[-1]
+                train_set = IDiffFace_loader(dataset_name, r_dir, transform, train_set)
             else:
                 raise Exception(f'Dataset \'{r_dir}\' not identified!')
 
