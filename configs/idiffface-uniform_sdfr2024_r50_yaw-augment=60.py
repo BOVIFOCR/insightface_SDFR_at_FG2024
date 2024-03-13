@@ -27,14 +27,8 @@ config.dali = False
 
 
 config.loss = 'CombinedMarginLoss'   # default
-# config.loss = 'LDAMLoss'
-# config.loss = 'FocalLoss'
 
 config.train_rule = None             # default
-# config.train_rule = 'Resample'
-# config.train_rule = 'Reweight'
-# config.train_rule = 'DRW'
-
 
 
 if uname.nodename == 'duo':
@@ -55,15 +49,6 @@ elif uname.nodename == 'daugman':
     config.val_dataset_dir = ['/groups/unico/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
     config.val_protocol_path = ['/groups/unico/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
 
-
-# elif uname.nodename == 'diolkos':
-#     config.rec = '/nobackup/unico/SDFR_at_FG2024/datasets/synthetic/DigiFace-1M_500Kimg_100Kids_5imgs-id/images'   # diolkos
-#
-#     config.val_targets = ['/home/bjgbiesseck/datasets/frcsyn_wacv2024/faces_webface_112x112/lfw.bin', '/home/bjgbiesseck/datasets/frcsyn_wacv2024/faces_webface_112x112/cfp_fp.bin', '/home/bjgbiesseck/datasets/frcsyn_wacv2024/faces_webface_112x112/agedb_30.bin', 'bupt']
-#     # config.val_targets = ['bupt']
-#     config.val_dataset_dir = ['/nobackup/unico/frcsyn_wacv2024/datasets/real/3_BUPT-BalancedFace/race_per_7000_crops_112x112']
-#     config.val_protocol_path = ['/nobackup/unico/frcsyn_wacv2024/comparison_files/comparison_files/sub-tasks_1.1_1.2/bupt_comparison.txt']
-
 else:
     raise Exception(f'Paths of train and val datasets could not be found in file \'{__file__}\'')
 
@@ -81,18 +66,16 @@ config.warmup_epoch = 0
 
 
 # WandB Logger
-# config.wandb_key = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-config.wandb_key = "d7664714c72bd594a957381812da450279f80f66"
+config.wandb_key = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 
 config.suffix_run_name = None
 
 config.using_wandb = False
 # config.using_wandb = True
 
-# config.wandb_entity = "entity"
-config.wandb_entity = "bovifocr"
+config.wandb_entity = "entity"
 
-config.wandb_project = "R100_DCFace_10000classes_whole_dataset"
+config.wandb_project = "project"
 config.wandb_log_all = True
 
 # config.save_artifacts = False
