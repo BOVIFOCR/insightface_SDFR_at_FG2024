@@ -1,9 +1,41 @@
-## CONFIG ENVIRONMENT (BOVIFOCR)
+# Synthetic Data for Face Recognition (SDFR) Competition
+
+#### Team details:
+- Team name: BOVIFOCR-UFPR
+- Team members: Bernardo Biesseck¹, Pedro Vidal¹, Roger Leitzke Granada², Luiz Coelho², David Menotti¹
+- Affiliation: ¹Federal University of Paraná (UFPR), ²unico-idTech
+
+<br>
+
+# DATA AUGMENTATION
+
+#### 1. Requirements:
+- CUDA=10.2
+- Python=3.6
+
+#### 2. Clone the repo [`face_pose_augmentation`](https://github.com/BOVIFOCR/face_pose_augmentation):
+```
+git clone https://github.com/BOVIFOCR/face_pose_augmentation.git
+cd face_pose_augmentation
+```
+
+#### 3. Augment data:
+```
+export CUDA_VISIBLE_DEVICES=0; python python face_pose_augmentation_main_BOVIFOCR.py --input-folder /path/to/dataset_input --output-folder /path/to/dataset_output --shuffle-subfolders --random-sample --samples-per-folder 1 --yaw 60
+```
+
+#### 4. Merge original data and augmented data:
+- Merge `/path/to/dataset_input` and `/path/to/dataset_output` to obtain the new dataset.
+
+<br>
+
+# FACE RECOGNITION MODEL
 
 #### 1. Requirements:
 - CUDA=11.6
+- Python=3.9
 
-#### 2. Clone this repo:
+#### 2. Clone this repo [`insightface_SDFR_at_FG2024`](https://github.com/BOVIFOCR/insightface_SDFR_at_FG2024):
 ```
 git clone https://github.com/BOVIFOCR/insightface_SDFR_at_FG2024.git
 cd insightface_SDFR_at_FG2024
@@ -25,9 +57,23 @@ conda install -y pytorch3d -c pytorch3d
 pip3 install -r requirements.txt
 ```
 
-#### 4. Train model:
+#### 4. Train model (Resnet50):
 ```
 export CUDA_VISIBLE_DEVICES=0; python train_v2_sdfr2024.py configs/idiffface-uniform_sdfr2024_r50_yaw-augment=60.py
 ```
-<br> <br> <br>
 
+<br>
+
+# CONVERT MODEL TO ONNX FORMAT
+
+#### 1. Requirements:
+- CUDA=11.8
+- Python=3.10
+
+#### 2. Create conda env and convert model:
+```
+conda env create -f submission_kit/dev_kit_v1_1/sdfr_env.yaml
+conda activate sdfr
+python export_onnx_sdfr_py310.py --config configs/idiffface-uniform_sdfr2024_r50_yaw-augment=60.py --weights work_dirs/idiffface-uniform_sdfr2024_r50_yaw-augment=60/2024-03-10_23-57-49/model.pt
+python export_sanitize_model_sdfr_py310.py --model_path work_dirs/idiffface-uniform_sdfr2024_r50_yaw-augment=60/2024-03-10_23-57-49/model_r50.onnx --task task2
+```
