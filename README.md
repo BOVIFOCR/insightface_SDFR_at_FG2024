@@ -1,3 +1,12 @@
+# Synthetic Data for Face Recognition (SDFR) Competition
+
+#### Team details:
+- Team name: BOVIFOCR-UFPR
+- Team members: Bernardo Biesseck¹, Pedro Vidal¹, Roger Leitzke Granada², Luiz Coelho², David Menotti¹
+- Affiliation: ¹Federal University of Paraná (UFPR), ²unico-idTech
+
+<br>
+
 # DATA AUGMENTATION
 
 #### 1. Requirements:
@@ -18,7 +27,7 @@ export CUDA_VISIBLE_DEVICES=0; python python face_pose_augmentation_main_BOVIFOC
 #### 4. Augment data:
 - Merge `/path/to/dataset_input` and `/path/to/dataset_output` to obtain the new dataset.
 
-<br> <br> <br>
+<br>
 
 
 # FACE RECOGNITION MODEL
@@ -53,5 +62,5 @@ pip3 install -r requirements.txt
 ```
 export CUDA_VISIBLE_DEVICES=0; python train_v2_sdfr2024.py configs/idiffface-uniform_sdfr2024_r50_yaw-augment=60.py
 ```
-<br> <br> <br>
+
 
