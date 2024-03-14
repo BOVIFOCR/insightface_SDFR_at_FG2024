@@ -1,9 +1,33 @@
-## CONFIG ENVIRONMENT (BOVIFOCR)
+# DATA AUGMENTATION
+
+#### 1. Requirements:
+- CUDA=10.2
+- Python=3.6
+
+#### 2. Clone the repo [`face_pose_augmentation`](https://github.com/BOVIFOCR/face_pose_augmentation):
+```
+git clone https://github.com/BOVIFOCR/face_pose_augmentation.git
+cd face_pose_augmentation
+```
+
+#### 3. Augment data:
+```
+export CUDA_VISIBLE_DEVICES=0; python python face_pose_augmentation_main_BOVIFOCR.py --input-folder /path/to/dataset_input --output-folder /path/to/dataset_output --shuffle-subfolders --random-sample --samples-per-folder 1 --yaw 60
+```
+
+#### 4. Augment data:
+- Merge `/path/to/dataset_input` and `/path/to/dataset_output` to obtain the new dataset.
+
+<br> <br> <br>
+
+
+# FACE RECOGNITION MODEL
 
 #### 1. Requirements:
 - CUDA=11.6
+- Python=3.9
 
-#### 2. Clone this repo:
+#### 2. Clone this repo [`insightface_SDFR_at_FG2024`](https://github.com/BOVIFOCR/insightface_SDFR_at_FG2024):
 ```
 git clone https://github.com/BOVIFOCR/insightface_SDFR_at_FG2024.git
 cd insightface_SDFR_at_FG2024
@@ -25,7 +49,7 @@ conda install -y pytorch3d -c pytorch3d
 pip3 install -r requirements.txt
 ```
 
-#### 4. Train model:
+#### 4. Train model (Resnet50):
 ```
 export CUDA_VISIBLE_DEVICES=0; python train_v2_sdfr2024.py configs/idiffface-uniform_sdfr2024_r50_yaw-augment=60.py
 ```
