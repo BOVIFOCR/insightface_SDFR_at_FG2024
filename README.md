@@ -29,7 +29,6 @@ export CUDA_VISIBLE_DEVICES=0; python python face_pose_augmentation_main_BOVIFOC
 
 <br>
 
-
 # FACE RECOGNITION MODEL
 
 #### 1. Requirements:
@@ -63,4 +62,10 @@ pip3 install -r requirements.txt
 export CUDA_VISIBLE_DEVICES=0; python train_v2_sdfr2024.py configs/idiffface-uniform_sdfr2024_r50_yaw-augment=60.py
 ```
 
+<br>
 
+# CONVERT MODEL TO ONNX FORMAT
+
+#### 1. Requirements:
+- CUDA=10.2
+- Python=3.6
