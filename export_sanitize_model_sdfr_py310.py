@@ -6,6 +6,7 @@
   @author: Christophe Ecabert
   @email: christophe.ecabert@idiap.ch
 """
+import os, sys
 from typing import TYPE_CHECKING
 from argparse import ArgumentParser
 from tqdm import tqdm
@@ -36,6 +37,9 @@ def main(args: 'Namespace'):
                ('batch_size', None))
     model.validate_output_shape(expected=o_shape, dtype='tensor(float)')
 
+    if args.output_folder is None or args.output_folder == '':
+        args.output_folder = os.path.dirname(args.model_path)
+
     # Score Sanitization
     scores = []
     with ScoreWriter.for_task(task=args.task,
@@ -48,6 +52,8 @@ def main(args: 'Namespace'):
             _scores = model.compute_scores(im1, im2)
             writer.write(scores=_scores)
             scores.extend(_scores.tolist())
+        print(f'Sanitizer scores saved at: \'{writer.fname}\'')
+
 
 if __name__ == '__main__':
 
@@ -84,8 +90,8 @@ if __name__ == '__main__':
     p.add_argument(
         '--sanitizer_bin_path',
         type=str,
-        default='sanitizer_samples.bin',
-        help='Path to binary file storing sanitizing samples. Default: sanitizer_samples.bin')
+        default='submission_kit/dev_kit_v1_1/sanitizer_samples.bin',
+        help='Path to binary file storing sanitizing samples. Default: submission_kit/dev_kit_v1_1/sanitizer_samples.bin')
     p.add_argument(
         '--output_folder',
         type=str,

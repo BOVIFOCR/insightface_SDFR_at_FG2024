@@ -69,11 +69,12 @@ torch_out = torch.nn.functional.normalize(torch_out, dim=1) # Normalize emb.
 onnx_model_filename = args.weights.split('/')[-1].split('.')[0] + '_' + cfg.network  + '.onnx'
 path_onnx_model_filename = os.path.join('/'.join(args.weights.split('/')[:-1]), onnx_model_filename)
 onnx_model_filename = path_onnx_model_filename
-print('onnx_model_filename:', onnx_model_filename)
+# print('onnx_model_filename:', onnx_model_filename)
 
 # Here we export the model to ONNX.
 # Once trainer, the onnx_model_filename here, as an example, is the file 
 # to upload for the competition.
+print('Exporting model to ONNX format')
 torch.onnx.export(example_wrapped_model,
                   example_input,
                   onnx_model_filename,
@@ -87,6 +88,7 @@ torch.onnx.export(example_wrapped_model,
                         'output': {0: 'batch_size'},
                     }
                 )
+print(f'Model saved at: \'{onnx_model_filename}\'')
 
 ###############################################################################
 # Sanity check to make sure the exported ONNX model provides the same outputs 
@@ -110,7 +112,9 @@ def to_numpy(tensor):
 # atol = 0
 rtol, atol = 0.00001, 0.00001
 
+print('\nLoading ONNX model:', onnx_model_filename)
 onnx_model = onnx.load(onnx_model_filename)
+print(f'Checking model with tolerances  rtol:{rtol}, atol: {atol}')
 onnx.checker.check_model(onnx_model)
 
 match DEVICE:
@@ -146,5 +150,3 @@ np.testing.assert_allclose(to_numpy(torch_out),
                            atol=atol)
 print("Exported model has been tested with ONNX-Runtime, "
       "and the result match within the tolerances.")
-print(f"rtol: {rtol}")
-print(f"atol: {atol}")
