@@ -70,7 +70,7 @@ export CUDA_VISIBLE_DEVICES=0; python train_v2_sdfr2024.py configs/idiffface-uni
 - CUDA=11.8
 - Python=3.10
 
-#### 2. Create conda env:
+#### 2. Create conda env and convert model:
 ```
 conda env create -f submission_kit/dev_kit_v1_1/sdfr_env.yaml
 conda activate sdfr
