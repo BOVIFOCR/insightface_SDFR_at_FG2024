@@ -163,7 +163,8 @@ def main(args):
         logging.info(": " + key + " " * num_space + str(value))
 
     callback_verification = CallBackVerification(
-        val_targets=cfg.val_targets, rec_prefix=cfg.rec, 
+        # val_targets=cfg.val_targets, rec_prefix=cfg.rec,
+        val_targets=cfg.val_targets, rec_prefix=cfg.val_dataset_dir, 
         summary_writer=summary_writer, wandb_logger = wandb_logger,
         cfg=cfg
     )
