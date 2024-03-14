@@ -24,7 +24,7 @@ cd face_pose_augmentation
 export CUDA_VISIBLE_DEVICES=0; python python face_pose_augmentation_main_BOVIFOCR.py --input-folder /path/to/dataset_input --output-folder /path/to/dataset_output --shuffle-subfolders --random-sample --samples-per-folder 1 --yaw 60
 ```
 
-#### 4. Augment data:
+#### 4. Merge original data and augmented data:
 - Merge `/path/to/dataset_input` and `/path/to/dataset_output` to obtain the new dataset.
 
 <br>
@@ -67,5 +67,13 @@ export CUDA_VISIBLE_DEVICES=0; python train_v2_sdfr2024.py configs/idiffface-uni
 # CONVERT MODEL TO ONNX FORMAT
 
 #### 1. Requirements:
-- CUDA=10.2
-- Python=3.6
+- CUDA=11.8
+- Python=3.10
+
+#### 2. Create conda env:
+```
+conda env create -f submission_kit/dev_kit_v1_1/sdfr_env.yaml
+conda activate sdfr
+python export_onnx_sdfr_py310.py --config configs/idiffface-uniform_sdfr2024_r50_yaw-augment=60.py --weights work_dirs/idiffface-uniform_sdfr2024_r50_yaw-augment=60/2024-03-10_23-57-49/model.pt
+python export_sanitize_model_sdfr_py310.py --model_path work_dirs/idiffface-uniform_sdfr2024_r50_yaw-augment=60/2024-03-10_23-57-49/model.onnx --task task2
+```
