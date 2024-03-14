@@ -1,4 +1,6 @@
 # Synthetic Data for Face Recognition (SDFR) Competition
+### The 18th IEEE International Conference on Automatic Face and Gesture Recognition (FG 2024)
+### [`https://www.idiap.ch/challenge/sdfr/leaderboard.html`](https://www.idiap.ch/challenge/sdfr/leaderboard.html)
 
 #### Team details:
 - Team name: BOVIFOCR-UFPR
