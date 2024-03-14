@@ -75,5 +75,5 @@ export CUDA_VISIBLE_DEVICES=0; python train_v2_sdfr2024.py configs/idiffface-uni
 conda env create -f submission_kit/dev_kit_v1_1/sdfr_env.yaml
 conda activate sdfr
 python export_onnx_sdfr_py310.py --config configs/idiffface-uniform_sdfr2024_r50_yaw-augment=60.py --weights work_dirs/idiffface-uniform_sdfr2024_r50_yaw-augment=60/2024-03-10_23-57-49/model.pt
-python export_sanitize_model_sdfr_py310.py --model_path work_dirs/idiffface-uniform_sdfr2024_r50_yaw-augment=60/2024-03-10_23-57-49/model.onnx --task task2
+python export_sanitize_model_sdfr_py310.py --model_path work_dirs/idiffface-uniform_sdfr2024_r50_yaw-augment=60/2024-03-10_23-57-49/model_r50.onnx --task task2
 ```
